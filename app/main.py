@@ -253,7 +253,7 @@ def detail(complaint_id: int, session: Session = Depends(get_session)) -> dict:
     if complaint_id in index.meta:
         vector = index.index.reconstruct(complaint_id)
         for m in index.search(vector, c.final_category or c.ai_category, c.location, c.reported_at,
-                              exclude_id=complaint_id):
+                              exclude_id=complaint_id, sub_issue=c.final_sub_issue or c.ai_sub_issue):
             other = session.get(Complaint, m.complaint_id)
             if other is None:
                 continue

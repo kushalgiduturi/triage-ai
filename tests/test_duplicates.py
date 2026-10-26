@@ -54,3 +54,13 @@ def test_exclude_self_and_persistence(tmp_path):
 def test_normalize_location():
     assert normalize_location("Block-A  Boys Hostel") == "blockaboyshostel"
     assert normalize_location("unknown") == ""
+
+
+def test_different_sub_issue_is_at_most_related():
+    idx = DuplicateIndex(HashEmbedder())
+    text = "Problem in the main mess kitchen, very dirty and students are sick."
+    idx.add(1, idx.embed_complaint(text, "Hostel and Mess", "mess_hygiene"), "Hostel and Mess", "Main Mess", T0,
+            "mess_hygiene")
+    v = idx.embed_complaint(text, "Hostel and Mess", "food_poisoning")
+    matches = idx.search(v, "Hostel and Mess", "Main Mess", T0, sub_issue="food_poisoning")
+    assert matches and matches[0].label == "related"

@@ -66,8 +66,8 @@ class TriagePipeline:
         place = location or extraction.location
 
         # Duplicates: search before adding this complaint to the index.
-        vector = self.index.embed(masked)
-        matches = self.index.search(vector, extraction.category, place, reported_at)
+        vector = self.index.embed_complaint(masked, extraction.category, extraction.sub_issue)
+        matches = self.index.search(vector, extraction.category, place, reported_at, sub_issue=extraction.sub_issue)
         incident = self._incident_for(session, matches, extraction, place, reported_at)
 
         routing = route(extraction)
@@ -91,7 +91,7 @@ class TriagePipeline:
         incident.last_reported = max(incident.last_reported, reported_at)
         session.flush()  # assigns complaint.id
 
-        self.index.add(complaint.id, vector, extraction.category, place, reported_at)
+        self.index.add(complaint.id, vector, extraction.category, place, reported_at, extraction.sub_issue)
         self.rescore_incident(session, incident, now)
         session.add(AuditLog(
             complaint_id=complaint.id, action="ai_triage", reviewer=SYSTEM_ACTOR, timestamp=now,
@@ -160,9 +160,10 @@ class TriagePipeline:
         rows = session.scalars(select(Complaint).order_by(Complaint.id)).all()
         if not rows:
             return 0
-        vectors = self.index.embedder.encode([c.masked_text for c in rows])
-        for c, v in zip(rows, vectors):
-            self.index.add(c.id, v, c.final_category or c.ai_category, c.location, c.reported_at)
+        for c in rows:
+            category, sub_issue = c.final_category or c.ai_category, c.final_sub_issue or c.ai_sub_issue
+            vector = self.index.embed_complaint(c.masked_text, category, sub_issue)
+            self.index.add(c.id, vector, category, c.location, c.reported_at, sub_issue)
         return len(rows)
 
 

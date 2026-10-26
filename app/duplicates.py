@@ -1,7 +1,17 @@
 """Duplicate / related complaint detection with sentence embeddings + FAISS.
 
-Each complaint's masked text is embedded (paraphrase-multilingual-MiniLM-L12-v2,
-L2-normalised so inner product = cosine similarity) and stored in a FAISS index.
+Each complaint is embedded with paraphrase-multilingual-MiniLM-L12-v2 and stored
+in a FAISS inner-product index (vectors are L2-normalised, so inner product =
+cosine similarity). The vector is the sum of two embeddings:
+
+    embed(masked complaint text) + embed("<category>: <sub issue>")
+
+Raw text alone is not enough: the same incident written in English, Hinglish and
+Telugu-English has a median cosine of only ~0.6, so the 0.85 threshold almost
+never fires (recall 0.20 on the synthetic set). Anchoring the vector with the
+normalised English issue label lifts recall to ~0.75 while the guards below keep
+precision ~0.9 (see eval/metrics.json).
+
 For a new complaint we retrieve the top-5 neighbours and score them:
 
     score = cosine + 0.05 if same category + 0.05 if same location
@@ -9,8 +19,9 @@ For a new complaint we retrieve the top-5 neighbours and score them:
     score > 0.85        -> "likely_duplicate"
     0.65 <= score <= .85 -> "related"
 
-Two extra guards (documented choice): if both complaints name *different* known
-locations, or were filed more than 7 days apart, they can be "related" at most.
+Extra guards (documented choice): if both complaints name *different* known
+locations, have *different* sub-issues, or were filed more than 7 days apart,
+they can be "related" at most.
 "No water in Block A" and "No water in Block C" read almost identically but are
 different incidents.
 """
@@ -110,6 +121,7 @@ class _Meta:
     category: str
     location: str
     timestamp: str
+    sub_issue: str = ""
 
 
 class DuplicateIndex:
@@ -127,12 +139,19 @@ class DuplicateIndex:
     def embed(self, text: str) -> np.ndarray:
         return self.embedder.encode([text])[0]
 
-    def add(self, complaint_id: int, vector: np.ndarray, category: str, location: str, timestamp: datetime) -> None:
+    def embed_complaint(self, masked_text: str, category: str, sub_issue: str) -> np.ndarray:
+        """Issue-anchored complaint vector: text embedding + issue-label embedding, re-normalised."""
+        text_vec, issue_vec = self.embedder.encode([masked_text, f"{category}: {sub_issue.replace('_', ' ')}"])
+        vec = text_vec + issue_vec
+        return (vec / (np.linalg.norm(vec) or 1.0)).astype("float32")
+
+    def add(self, complaint_id: int, vector: np.ndarray, category: str, location: str, timestamp: datetime,
+            sub_issue: str = "") -> None:
         with self._lock:
             if complaint_id in self.meta:
                 self.index.remove_ids(np.array([complaint_id], dtype="int64"))
             self.index.add_with_ids(vector.reshape(1, -1).astype("float32"), np.array([complaint_id], dtype="int64"))
-            self.meta[complaint_id] = _Meta(category, normalize_location(location), timestamp.isoformat())
+            self.meta[complaint_id] = _Meta(category, normalize_location(location), timestamp.isoformat(), sub_issue)
 
     def search(
         self,
@@ -142,6 +161,7 @@ class DuplicateIndex:
         timestamp: datetime,
         k: int = TOP_K,
         exclude_id: int | None = None,
+        sub_issue: str = "",
     ) -> list[Match]:
         """Top-k neighbours scored and labelled; neighbours below RELATED_THRESHOLD are dropped."""
         if self.index.ntotal == 0:
@@ -160,7 +180,9 @@ class DuplicateIndex:
             score = float(sim) + CATEGORY_BOOST * same_cat + LOCATION_BOOST * same_loc
             days_apart = abs((timestamp - datetime.fromisoformat(meta.timestamp)).total_seconds()) / 86400
             different_place = bool(loc) and bool(meta.location) and not same_loc
-            if score > DUPLICATE_THRESHOLD and not different_place and days_apart <= DUPLICATE_WINDOW_DAYS:
+            different_issue = bool(sub_issue) and bool(meta.sub_issue) and meta.sub_issue != sub_issue
+            if (score > DUPLICATE_THRESHOLD and not different_place and not different_issue
+                    and days_apart <= DUPLICATE_WINDOW_DAYS):
                 label = "likely_duplicate"
             elif score >= RELATED_THRESHOLD:
                 label = "related"
