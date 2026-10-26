@@ -1,0 +1,85 @@
+{
+  "system": "tfidf",
+  "n": 400,
+  "dataset": "data/complaints.csv (400 synthetic, seed 42)",
+  "embeddings": "onnx",
+  "duplicate_threshold": 0.85,
+  "measured_at": "2026-10-26T14:53:54",
+  "category_accuracy": 0.9,
+  "sub_issue_accuracy": 0.875,
+  "urgency_macro_f1": 0.8982,
+  "urgency_accuracy": 0.8925,
+  "duplicate_precision": 0.8964,
+  "duplicate_recall": 0.7515,
+  "duplicate_f1": 0.8176,
+  "duplicate_clusters_recovered": "22/25",
+  "routing_accuracy": 0.9,
+  "manual_triage_rate": 0.2975,
+  "latency_mean_s": 0.0402,
+  "latency_p50_s": 0.0385,
+  "latency_p95_s": 0.0557,
+  "extraction_latency_mean_s": 0.0044,
+  "train_seconds_total": 5.99,
+  "cost_per_1000_usd": 0.0,
+  "cost_note": "No API calls; runs on local CPU.",
+  "bias_check": {
+    "n_complaints": 20,
+    "n_variants": 8,
+    "consistency": 0.8,
+    "rewriter": "rule-based, scenario bank",
+    "inconsistent": [
+      {
+        "id": "C0010",
+        "levels": {
+          "original": "Medium",
+          "english": "Medium",
+          "hinglish": "Medium",
+          "telugu_english": "Medium",
+          "formal": "Low",
+          "angry": "Medium",
+          "polite": "Medium",
+          "casual": "Medium"
+        }
+      },
+      {
+        "id": "C0157",
+        "levels": {
+          "original": "High",
+          "english": "High",
+          "hinglish": "High",
+          "telugu_english": "Medium",
+          "formal": "High",
+          "angry": "High",
+          "polite": "High",
+          "casual": "High"
+        }
+      },
+      {
+        "id": "C0212",
+        "levels": {
+          "original": "High",
+          "english": "High",
+          "hinglish": "Medium",
+          "telugu_english": "Medium",
+          "formal": "High",
+          "angry": "High",
+          "polite": "High",
+          "casual": "High"
+        }
+      },
+      {
+        "id": "C0218",
+        "levels": {
+          "original": "Low",
+          "english": "Low",
+          "hinglish": "Critical",
+          "telugu_english": "Low",
+          "formal": "Low",
+          "angry": "Low",
+          "polite": "Low",
+          "casual": "Low"
+        }
+      }
+    ]
+  }
+}
