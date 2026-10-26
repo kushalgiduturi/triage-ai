@@ -16,7 +16,7 @@ env/
 *.db-journal
 *.faiss
 *.index
-data/faiss_ids.json
+data/*.meta.json
 models/
 
 # Caches

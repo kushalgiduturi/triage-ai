@@ -216,7 +216,7 @@ def bias_check(df: pd.DataFrame, use_llm: bool, n: int = 20, seed: int = 7) -> d
         "n_complaints": len(results),
         "n_variants": n_var,
         "consistency": round(sum(r["consistent"] for r in results) / len(results), 4),
-        "rewriter": "claude" if any(r["rewriter"] == "claude" for r in results) else "rule-based (scenario bank)",
+        "rewriter": "claude" if any(r["rewriter"] == "claude" for r in results) else "rule-based, scenario bank",
         "inconsistent_examples": [r for r in results if not r["consistent"]][:8],
     }
 

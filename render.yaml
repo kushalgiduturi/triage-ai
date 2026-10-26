@@ -1,0 +1,15 @@
+# Fallback deployment: Render Blueprint (Dashboard -> New -> Blueprint -> pick this repo).
+# One container: FastAPI serves the API and the React UI on $PORT.
+services:
+  - type: web
+    name: triage-ai
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    # torch + the embedding model need ~1 GB RAM; the free plan (512 MB) is too small.
+    plan: starter
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: ANTHROPIC_API_KEY
+        sync: false # set the value in the Render dashboard; never commit it

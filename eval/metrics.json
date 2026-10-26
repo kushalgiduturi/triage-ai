@@ -30,7 +30,7 @@
     "n_complaints": 20,
     "n_variants": 8,
     "consistency": 0.8,
-    "rewriter": "rule-based (scenario bank)",
+    "rewriter": "rule-based, scenario bank",
     "inconsistent_examples": [
       {
         "id": "C0010",
