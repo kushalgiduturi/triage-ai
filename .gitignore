@@ -32,3 +32,7 @@ Thumbs.db
 # Frontend
 frontend/node_modules/
 frontend/dist/
+
+# Local test artefacts
+.coverage
+eval/results/agreement.json
