@@ -1,4 +1,4 @@
-# TriageAI — 3-minute demo script
+# TriageAI: 3-minute demo script
 
 **Setup (before the demo):** open the app (Hugging Face Space or `http://localhost:7860`), type a reviewer name such as `Asha (Warden)` in the **Reviewer** field of the floating navigation dock, and keep this script open on a second screen. The queue is pre-seeded with 400 synthetic complaints. Figures below come from the offline mode; with an Anthropic key the summary wording and confidence differ slightly.
 
