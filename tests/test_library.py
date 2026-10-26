@@ -1,7 +1,5 @@
 """The README library example must keep working."""
 
-import os
-
 from triageai import Pipeline
 
 
@@ -14,4 +12,5 @@ def test_readme_library_example():
     assert load_taxonomy().get(result["category"], result["sub_issue"]) is not None
     assert result["status"] == "pending" and result["urgency"] in ("Low", "Medium", "High", "Critical")
     assert "[NAME]" in result["masked_text"] and "98480" not in result["masked_text"]
-    assert result["method"] == ("llm" if os.getenv("ANTHROPIC_API_KEY") else "fallback")
+    # The test suite sets TRIAGE_DISABLE_LLM=1, so it never calls an API even if a key exists in .env.
+    assert result["method"] == "fallback"

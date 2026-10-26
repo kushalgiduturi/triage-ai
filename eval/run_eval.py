@@ -11,8 +11,8 @@ one complaint at a time, so latency is end to end. Outputs:
     eval/results/<system>_predictions.csv   one row per complaint (raw outputs)
     docs/confusion_<system>.png             category confusion matrix
 
-If the LLM provider is not reachable the llm system is recorded as "not measured" with the
-reason. Nothing is estimated.
+If the LLM provider is not reachable the llm system is skipped and nothing is written for it.
+Nothing is estimated.
 """
 
 from __future__ import annotations
@@ -219,10 +219,7 @@ def main() -> None:
         if system == "llm" and not llm_available(PROVIDER):
             reason = ("PROVIDER=ollama but no Ollama server answered at OLLAMA_URL" if PROVIDER == "ollama"
                       else "PROVIDER=claude but ANTHROPIC_API_KEY is not set")
-            result = {"system": "llm", "provider": PROVIDER, "status": "not measured", "reason": reason,
-                      "measured_at": datetime.now().isoformat(timespec="seconds")}
-            path.write_text(json.dumps(result, indent=2), encoding="utf-8")
-            print(f"[llm] not measured: {reason}")
+            print(f"[llm] skipped: {reason}")  # nothing is written, so no placeholder result exists
             continue
         t0 = time.time()
         out, info = run_system(system, df)

@@ -1,7 +1,0 @@
-{
-  "system": "llm",
-  "provider": "claude",
-  "status": "not measured",
-  "reason": "PROVIDER=claude but ANTHROPIC_API_KEY is not set",
-  "measured_at": "2026-10-26T15:02:07"
-}

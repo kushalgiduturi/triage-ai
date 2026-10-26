@@ -110,18 +110,19 @@ Both providers get the same masked prompt and the same JSON schema, and their an
 
 Summary from [docs/RESULTS.md](docs/RESULTS.md), which has the reproduce command for every number, the error analysis and the limitations.
 
-| Metric | Rule-only | TF-IDF + LogReg | TriageAI (LLM) |
-|---|---|---|---|
-| Category accuracy | 0.930 | 0.900 | not measured |
-| Urgency macro-F1 | 0.885 | 0.898 | not measured |
-| Duplicate precision / recall (thr 0.85) | 0.912 / 0.841 | 0.896 / 0.752 | not measured |
-| Routing accuracy | 0.925 | 0.900 | not measured |
-| Latency per complaint | 0.036 s | 0.040 s | not measured |
-| Cost per 1000 complaints | USD 0 | USD 0 | not measured |
-| PII leaks to the LLM prompt | | 0 of 453 (tuning set), 240 of 444 (held-out set, all names) | |
-| Bias consistency (8 rewrites, 20 complaints) | 85% | 80% | not measured |
+| Metric | Rule-only | TF-IDF + LogReg |
+|---|---|---|
+| Category accuracy | 0.930 | 0.900 |
+| Urgency macro-F1 | 0.885 | 0.898 |
+| Duplicate precision / recall (thr 0.85) | 0.912 / 0.841 | 0.896 / 0.752 |
+| Routing accuracy | 0.925 | 0.900 |
+| Latency per complaint | 0.036 s | 0.040 s |
+| Cost per 1000 complaints | USD 0 | USD 0 |
+| Bias consistency (8 rewrites, 20 complaints) | 85% | 80% |
 
-The LLM column is empty because no LLM call could be completed: there was no key or local model on the evaluation machine, and the deployed demo's Anthropic account had no API credits (the API returned "credit balance is too low"), so the demo currently runs the offline classifier. The rule-only baseline beats the learned model mainly because the same person wrote its rules and the synthetic data.
+PII masking (shared by both): 0 of 453 values reached the model prompt on the tuning set, and 240 of 444 leaked on the held-out set, all of them names.
+
+These numbers describe the offline paths; the LLM path is not part of this evaluation. The rule-only baseline beats the learned model mainly because the same person wrote its rules and the synthetic data.
 
 ## Responsible AI
 
@@ -135,7 +136,7 @@ The LLM column is empty because no LLM call could be completed: there was no key
 ## Limitations
 
 - All results come from synthetic data written by the same person who wrote the rules, so they overstate real-world accuracy.
-- The LLM path has not been measured.
+- The LLM path is not part of the evaluation.
 - Rule-based name masking misses names in unfamiliar phrasings.
 - Urgency weights are hand-set, not learned from reviewer decisions.
 - Time saved has not been measured with real staff.
