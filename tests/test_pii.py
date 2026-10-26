@@ -19,6 +19,10 @@ from app.pii import mask_pii
         ("Please contact Dr. Meena Iyer about this.", {"NAME"}, ["Meena"]),
         ("Generator band hai. Contact Priya 9876501234", {"NAME", "PHONE"}, ["Priya", "9876501234"]),
         ("Please call me at 98765 43210, ask Ravi at the gate.", {"NAME", "PHONE"}, ["Ravi", "43210"]),
+        ("Ritu Shetty bol raha hoon, GH-2 se. Call karo 691 699 8543.", {"NAME", "PHONE"}, ["Ritu", "Shetty", "8543"]),
+        ("GH-1 lo dirty ga undi. Abhishek garu ki cheppandi.", {"NAME"}, ["Abhishek"]),
+        ("pls call bhavana bhaiya. Bhavana Rao here from BH-A", {"NAME"}, ["bhavana", "Bhavana", "Rao"]),
+        ("- Gurpreet (20774A65G6)", {"NAME", "ID"}, ["Gurpreet", "20774A65G6"]),
     ],
 )
 def test_masks_expected_pii(text, expected_types, leaked):
@@ -35,6 +39,8 @@ def test_masks_expected_pii(text, expected_types, leaked):
         "Girls Hostel 2 lo WiFi down lo undi.",
         "Two of my exams are scheduled at the same time in the new timetable.",
         "Room 204 on floor 3 of the PG Hostel has a broken fan.",
+        "Thank you ji, the fan in GH-2 is fixed.",
+        "Contact the warden office please.",
     ],
 )
 def test_no_false_positives_on_locations(text):

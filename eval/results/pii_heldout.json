@@ -1,0 +1,34 @@
+{
+  "set": "held-out (not used for tuning)",
+  "n_complaints": 120,
+  "seed": 43,
+  "n_pii_items": 444,
+  "counting": "distinct values per complaint",
+  "leaked_items": 240,
+  "complaints_with_any_leak": 120,
+  "by_type": {
+    "EMAIL": {
+      "planted": 56,
+      "leaked": 0
+    },
+    "ID": {
+      "planted": 54,
+      "leaked": 0
+    },
+    "NAME": {
+      "planted": 240,
+      "leaked": 240
+    },
+    "PHONE": {
+      "planted": 94,
+      "leaked": 0
+    }
+  },
+  "location_codes_over_masked": 0,
+  "languages": {
+    "hi": 44,
+    "te": 44,
+    "en": 32
+  },
+  "prompts_checked": 120
+}

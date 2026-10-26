@@ -1,0 +1,33 @@
+{
+  "n_complaints": 120,
+  "seed": 42,
+  "n_pii_items": 453,
+  "counting": "distinct values per complaint",
+  "leaked_items": 144,
+  "complaints_with_any_leak": 89,
+  "by_type": {
+    "EMAIL": {
+      "planted": 36,
+      "leaked": 0
+    },
+    "ID": {
+      "planted": 99,
+      "leaked": 11
+    },
+    "NAME": {
+      "planted": 209,
+      "leaked": 118
+    },
+    "PHONE": {
+      "planted": 109,
+      "leaked": 15
+    }
+  },
+  "location_codes_over_masked": 0,
+  "languages": {
+    "hi": 45,
+    "te": 43,
+    "en": 32
+  },
+  "prompts_checked": 120
+}
