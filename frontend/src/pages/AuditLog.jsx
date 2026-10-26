@@ -23,7 +23,7 @@ export default function AuditLog() {
         <ErrorLine error={error} />
 
         <div className="mt-8">
-          <Table minWidth={820}>
+          <Table caption="Audit log of reviewer actions">
             <thead>
               <tr><Th>Timestamp</Th><Th>Reviewer</Th><Th>Action</Th><Th>Complaint</Th><Th>Old value</Th><Th>New value</Th></tr>
             </thead>

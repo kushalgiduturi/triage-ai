@@ -3,7 +3,7 @@ import { Fragment, useCallback, useEffect, useState } from "react";
 import { api } from "../api.js";
 import {
   Button, ConfirmPanel, Divider, ErrorLine, Field, Page, Row, SectionLabel, Surface, Table, Td, Th, Urgency,
-  changedFields, formatTime, readable, spring,
+  changedFields, formatTime, readable, spring, useMotionSafe,
 } from "../ui.jsx";
 
 /** Masked text with [NAME]/[PHONE]/[EMAIL]/[ID] tags emphasised so redactions are visible. */
@@ -40,6 +40,7 @@ export default function Detail({ id, reviewer }) {
   const [notes, setNotes] = useState("");
   const [edit, setEdit] = useState({});
   const [mergeTarget, setMergeTarget] = useState("");
+  const safe = useMotionSafe();
 
   const load = useCallback(() => api.complaint(id).then(setC).catch((e) => setError(e.message)), [id]);
   useEffect(() => {
@@ -143,7 +144,7 @@ export default function Detail({ id, reviewer }) {
 
           <SectionLabel>History</SectionLabel>
           <div className="mt-2">
-            <Table minWidth={560}>
+            <Table caption="Review history for this complaint">
               <thead>
                 <tr><Th>Time</Th><Th>Reviewer</Th><Th>Action</Th><Th>Old value</Th><Th>New value</Th></tr>
               </thead>
@@ -166,13 +167,16 @@ export default function Detail({ id, reviewer }) {
         </Surface>
 
         {/* Level 2: the decision panel. Sticky on wide screens, a bottom sheet on narrow ones. */}
-        <motion.aside
+        <Surface
+          as={motion.aside}
+          level={2}
+          shape="sheet"
           aria-label="Recommendation and decision"
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, ...safe({ y: 16 }) }}
+          animate={{ opacity: 1, ...safe({ y: 0 }) }}
           transition={spring}
-          className="surface-2 fixed inset-x-0 bottom-0 z-30 max-h-[50vh] overflow-y-auto !rounded-b-none p-6 sm:p-7
-                     lg:sticky lg:inset-auto lg:top-28 lg:z-auto lg:max-h-[calc(100vh-8rem)] lg:!rounded-[24px]"
+          className="fixed inset-x-0 bottom-0 z-30 max-h-[50vh] overflow-y-auto
+                     lg:sticky lg:inset-auto lg:top-28 lg:z-auto lg:max-h-[calc(100vh-8rem)]"
         >
           <SectionLabel>Recommendation</SectionLabel>
           <dl className="mt-1 divide-y divide-line">
@@ -189,9 +193,9 @@ export default function Detail({ id, reviewer }) {
             <Item label="Next action">{ai.next_action}</Item>
             <Item label="Confidence">
               <span className="tabular-nums">{ai.confidence.toFixed(2)}</span>
-              <div className="mt-2 h-1.5 w-full rounded-full bg-mist">
-                <div className="h-1.5 rounded-full bg-sky" style={{ width: `${Math.round(ai.confidence * 100)}%` }} />
-              </div>
+              <span className="text-muted">
+                {c.needs_manual_triage ? " · below the 0.60 threshold" : " · above the 0.60 threshold"}
+              </span>
             </Item>
           </dl>
 
@@ -265,7 +269,7 @@ export default function Detail({ id, reviewer }) {
           </div>
           {!reviewer.trim() && <p className="mt-3 text-muted">Enter your name in the Reviewer field at the top to act.</p>}
           <ErrorLine error={error} />
-        </motion.aside>
+        </Surface>
       </div>
 
       <ConfirmPanel open={confirm === "reject"} title="Reject this complaint?" confirmLabel="Reject"

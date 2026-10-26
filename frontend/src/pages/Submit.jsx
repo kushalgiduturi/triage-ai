@@ -1,7 +1,6 @@
-import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { Button, Divider, ErrorLine, Field, Page, Surface, Urgency, readable, spring } from "../ui.jsx";
+import { Button, Divider, ErrorLine, Field, Page, Surface, Urgency, readable } from "../ui.jsx";
 
 export default function Submit() {
   const [form, setForm] = useState({ text: "", location: "", contact: "" });
@@ -57,10 +56,9 @@ export default function Submit() {
 
         <ErrorLine error={error} />
 
-        <AnimatePresence>
+        <div aria-live="polite">
           {result && (
-            <motion.div key={result.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                        transition={spring} aria-live="polite">
+            <div>
               <Divider className="my-8" />
               <p className="text-muted">AI suggestion only. Human decision required.</p>
               <h2 className="mt-2 text-lg font-semibold">Complaint #{result.id}: {result.ai_suggestion.summary}</h2>
@@ -85,9 +83,9 @@ export default function Submit() {
                 </Line>
               </dl>
               <a className="link mt-5 inline-block" href={`#/complaints/${result.id}`}>Open the full record to review it</a>
-            </motion.div>
+            </div>
           )}
-        </AnimatePresence>
+        </div>
       </Surface>
     </Page>
   );

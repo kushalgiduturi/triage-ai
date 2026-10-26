@@ -49,7 +49,7 @@ export default function Analytics() {
         <div className="grid gap-12 xl:grid-cols-2">
           <div>
             <SectionLabel>Category distribution</SectionLabel>
-            <div className="mt-4"><BarList rows={categories} /></div>
+            <div className="mt-4"><BarList rows={categories} empty="No complaints yet." /></div>
           </div>
           <div>
             <SectionLabel>Urgency distribution</SectionLabel>
@@ -80,7 +80,7 @@ export default function Analytics() {
               {m.incidents.complaints_in_multi_report_incidents} complaints grouped into{" "}
               {m.incidents.multi_report_incidents} incidents with two or more reports. Largest:
             </p>
-            <div className="mt-4"><BarList rows={incidents} labelWidth="minmax(0, 18rem)" /></div>
+            <div className="mt-4"><BarList rows={incidents} labelWidth="minmax(0, 18rem)" empty="No incident has two or more reports yet." /></div>
           </div>
         </div>
 
@@ -91,7 +91,7 @@ export default function Analytics() {
           Large gaps between rows would mean the way someone writes changes how they are treated.
         </p>
         <div className="mt-4">
-          <Table minWidth={760}>
+          <Table caption="Outcomes by writing style">
             <thead>
               <tr>
                 <Th>Style</Th><Th align="right">Complaints</Th><Th align="right">Mean urgency score</Th>

@@ -26,6 +26,8 @@ short_description: AI complaint triage that recommends, humans decide
 | **Submit complaint** | **Analytics** |
 | ![Submit complaint](docs/screenshots/submit.png) | ![Analytics](docs/screenshots/analytics.png) |
 
+Every page at 1440, 1024 and 768 px is in [`docs/screenshots/`](docs/screenshots) as `<page>-<width>.png` (queue, detail, submit, analytics, audit).
+
 ## What it does
 
 | Step | Module | What happens |

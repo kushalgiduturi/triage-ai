@@ -5,24 +5,25 @@
 @layer base {
   html {
     font-size: 14px;
-    color: #0f172a;
-    background: #ffffff;
+    color: theme("colors.ink");
+    background: theme("colors.white");
     min-height: 100%;
   }
   body {
     @apply font-sans antialiased;
     min-height: 100vh;
     /* Level 0: white fading to pale sky toward the bottom of the page (static, scrolls with content). */
-    background: linear-gradient(180deg, #ffffff 0%, #ffffff 30%, #f0f9ff 100%);
+    background: linear-gradient(180deg, theme("colors.white") 0%, theme("colors.white") 30%, theme("colors.mist") 100%);
   }
   :focus-visible {
-    outline: 2px solid #0ea5e9;
+    outline: 2px solid theme("colors.sky.DEFAULT");
     outline-offset: 2px;
   }
 }
 
 @layer components {
-  /* Glass surfaces. Text always sits on >= 0.72 white, so contrast holds whatever is behind. */
+  /* Glass surfaces (radius comes from the Surface component's shape). Text always sits on
+     >= 0.72 white, so contrast holds whatever is behind. */
   .surface-1 {
     background: rgba(255, 255, 255, 0.72);
     -webkit-backdrop-filter: blur(24px) saturate(160%);
@@ -30,8 +31,7 @@
     border: 1px solid rgba(14, 165, 233, 0.12); /* outer hairline */
     box-shadow:
       inset 0 0 0 1px rgba(255, 255, 255, 0.9),
-      0 20px 60px rgba(14, 165, 233, 0.1);
-    border-radius: 28px;
+      theme("boxShadow.l1");
   }
   .surface-2 {
     background: rgba(255, 255, 255, 0.88);
@@ -40,29 +40,31 @@
     border: 1px solid rgba(14, 165, 233, 0.12);
     box-shadow:
       inset 0 0 0 1px rgba(255, 255, 255, 0.9),
-      0 12px 40px rgba(2, 132, 199, 0.16);
-    border-radius: 24px;
+      theme("boxShadow.l2");
   }
-  /* Level 2 without blur: used for the confirmation dialog, which sits on an opaque white scrim
-     (keeps at most three backdrop-blur elements on screen). */
-  .surface-2-flat {
-    background: rgba(255, 255, 255, 0.97);
-    border: 1px solid rgba(14, 165, 233, 0.12);
-    box-shadow: 0 12px 40px rgba(2, 132, 199, 0.16);
-    border-radius: 24px;
+  /* Level 2 without blur: the confirmation dialog sits on an opaque scrim, so blurring adds
+     nothing and would push a page past three backdrop-blur elements. */
+  .surface-noblur {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
+  /* Opaque fallback when backdrop-filter is unsupported. */
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
     .surface-1,
     .surface-2 {
       background: rgba(255, 255, 255, 0.97);
     }
   }
+  /* Level 0 ambience: the single static sky-blue bloom behind the content. */
+  .ambient-bloom {
+    background: radial-gradient(ellipse 60% 55% at 50% 0%, rgba(14, 165, 233, 0.14), rgba(14, 165, 233, 0) 70%);
+  }
 
   .section-label {
     @apply text-section uppercase text-muted font-medium;
   }
   .field {
-    @apply rounded-xl border border-line bg-white px-3 py-2 text-ink;
+    @apply rounded-control border border-line bg-white px-3 py-2 text-ink;
   }
   .link {
     @apply text-sky-text underline-offset-2 hover:underline;
