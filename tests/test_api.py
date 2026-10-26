@@ -108,3 +108,12 @@ def test_metrics_and_taxonomy(client):
     tax = client.get("/taxonomy").json()
     assert len(tax["categories"]) == 8
     assert client.get("/health").json()["status"] == "ok"
+
+
+def test_export_csv(client):
+    submit(client, "Water cooler on the second floor of the CSE block is broken. - Ravi Kumar", "CSE Block")
+    r = client.get("/export.csv")
+    assert r.status_code == 200 and r.headers["content-type"].startswith("text/csv")
+    lines = r.text.strip().splitlines()
+    assert lines[0].startswith("id,reported_at") and len(lines) == 2
+    assert "Ravi Kumar" not in r.text  # export carries masked text only

@@ -363,6 +363,32 @@ def audit_log(session: Session = Depends(get_session), include_ai: bool = False,
     ]}
 
 
+@app.get("/export.csv")
+def export_csv(session: Session = Depends(get_session), status: str | None = None):
+    """Download triage records as CSV (AI suggestion and human decision side by side)."""
+    import csv
+    import io
+
+    from fastapi.responses import Response
+
+    rows = session.scalars(select(Complaint).order_by(Complaint.id)).all()
+    if status:
+        rows = [c for c in rows if c.status == status]
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(["id", "reported_at", "location", "masked_text", "ai_category", "ai_sub_issue", "ai_urgency",
+                     "ai_department", "confidence", "status", "final_category", "final_urgency",
+                     "final_department", "reviewer", "reviewed_at", "incident_id"])
+    for c in rows:
+        writer.writerow([c.id, c.reported_at.isoformat(), c.location, c.masked_text, c.ai_category, c.ai_sub_issue,
+                         c.urgency, c.suggested_department, c.confidence, c.status, c.final_category,
+                         c.final_urgency, c.final_department, c.reviewer,
+                         c.reviewed_at.isoformat() if c.reviewed_at else "", c.incident_id])
+    # Masked text only: the export is meant to be shared, so raw complaint text stays in the database.
+    return Response(buffer.getvalue(), media_type="text/csv",
+                    headers={"Content-Disposition": "attachment; filename=triageai_export.csv"})
+
+
 @app.get("/incidents")
 def incidents(session: Session = Depends(get_session), min_reports: int = 2) -> dict:
     rows = session.scalars(select(Incident).where(Incident.report_count >= min_reports)).all()

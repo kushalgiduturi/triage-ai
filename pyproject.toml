@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "triageai"
+version = "1.1.0"
+description = "AI complaint triage for campuses and public service teams. The AI recommends. A human always decides."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+# Runtime dependencies live in requirements-lite.txt (Lite) and requirements.txt (Full).
+
+[tool.setuptools.packages.find]
+include = ["app*", "triageai*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
