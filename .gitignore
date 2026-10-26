@@ -36,3 +36,4 @@ frontend/dist/
 # Local test artefacts
 .coverage
 eval/results/agreement.json
+*.egg-info/
