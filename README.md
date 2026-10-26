@@ -121,7 +121,7 @@ Summary from [docs/RESULTS.md](docs/RESULTS.md), which has the reproduce command
 | PII leaks to the LLM prompt | | 0 of 453 (tuning set), 240 of 444 (held-out set, all names) | |
 | Bias consistency (8 rewrites, 20 complaints) | 85% | 80% | not measured |
 
-The LLM column is empty because no API key or local model was available when these were measured. The rule-only baseline beats the learned model mainly because the same person wrote its rules and the synthetic data.
+The LLM column is empty because no LLM call could be completed: there was no key or local model on the evaluation machine, and the deployed demo's Anthropic account had no API credits (the API returned "credit balance is too low"), so the demo currently runs the offline classifier. The rule-only baseline beats the learned model mainly because the same person wrote its rules and the synthetic data.
 
 ## Responsible AI
 

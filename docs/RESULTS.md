@@ -22,7 +22,7 @@ The three systems run through the same pipeline (PII masking, duplicate detectio
 | Latency per complaint (s), mean / p95 | 0.036 / 0.051 | 0.040 / 0.056 | not measured (1) | `make eval-latency` |
 | Cost per 1000 complaints (USD) | 0.00 (2) | 0.00 (2) | not measured (1) | `make eval-cost` |
 
-(1) The LLM column was not measured: this machine has no `ANTHROPIC_API_KEY` and no Ollama server, so no LLM call could be made. `eval/results/llm.json` records this. The same command fills the column once a provider is reachable: `ANTHROPIC_API_KEY=... make eval` for Claude (cost is then computed from the token usage the API reports), or `PROVIDER=ollama OLLAMA_MODEL=llama3.1:8b make eval`.
+(1) The LLM column was not measured. The machine that ran the evaluation has no `ANTHROPIC_API_KEY` and no Ollama server. The deployed demo does have a key configured, but on 2026-10-26 the Anthropic API rejected its calls with `400 invalid_request_error: Your credit balance is too low to access the Anthropic API`, so every live request fell back to the offline classifier. `eval/results/llm.json` records the local reason. The same command fills the column once a provider is reachable: `ANTHROPIC_API_KEY=... make eval` for Claude (cost is then computed from the token usage the API reports), or `PROVIDER=ollama OLLAMA_MODEL=llama3.1:8b make eval`.
 
 (2) No API calls; the systems run on the local CPU. Hardware cost is not priced.
 
