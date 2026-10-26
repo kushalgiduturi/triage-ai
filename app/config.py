@@ -27,7 +27,9 @@ ANTHROPIC_MODEL = os.getenv("TRIAGE_CLAUDE_MODEL", "claude-opus-5-5")
 
 # Ollama settings (PROVIDER=ollama). Any instruction-tuned model that supports JSON output works.
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.1:8b")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:3b")
+OLLAMA_TIMEOUT = float(os.getenv("OLLAMA_TIMEOUT", "120"))  # seconds per request; small CPU models are slow
+OLLAMA_TEMPERATURE = min(0.2, max(0.0, float(os.getenv("OLLAMA_TEMPERATURE", "0"))))  # kept within 0 to 0.2
 LLM_ENABLED = os.getenv("TRIAGE_DISABLE_LLM", "0") != "1"
 
 # Embeddings backend:

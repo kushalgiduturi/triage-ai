@@ -101,10 +101,58 @@ def test_ollama_provider_uses_schema_and_validates():
     result = llm.extract("no water in [NAME]'s room in Block A", "Block A Boys Hostel")
     assert result.sub_issue == "no_water_supply" and result.method == "llm"
     assert seen["model"] == "test-model" and seen["format"]["properties"]["category"]["enum"]
+    assert 0 <= seen["options"]["temperature"] <= 0.2 and seen["stream"] is False
     assert "[NAME]" in seen["messages"][1]["content"]
     assert llm.usage == [{"input_tokens": 900, "output_tokens": 120}]
 
 
+def _mock_ollama(monkeypatch, handler):
+    import httpx
+
+    transport = httpx.MockTransport(handler)
+    monkeypatch.setattr(httpx, "get", lambda url, **kw: httpx.Client(transport=transport).get(url))
+
+
+def test_ollama_available_requires_installed_model(monkeypatch):
+    import httpx
+
+    _mock_ollama(monkeypatch, lambda r: httpx.Response(200, json={"models": [{"name": "qwen2.5:3b"}]}))
+    assert ex.ollama_available("http://ollama.test", "qwen2.5:3b")
+    assert not ex.ollama_available("http://ollama.test", "llama3.1:8b")
+    _mock_ollama(monkeypatch, lambda r: httpx.Response(200, json={"models": [{"name": "mistral:latest"}]}))
+    assert ex.ollama_available("http://ollama.test", "mistral")
+
+
+def test_ollama_unreachable_is_unavailable(monkeypatch):
+    import httpx
+
+    def down(request):
+        raise httpx.ConnectError("refused")
+
+    _mock_ollama(monkeypatch, down)
+    assert not ex.ollama_available("http://ollama.test", "qwen2.5:3b")
+
+
+def test_ollama_two_invalid_answers_fall_back(fallback_model):
+    """Two schema-invalid Ollama answers: the offline classifier decides, method='fallback'."""
+    import httpx
+
+    calls = []
+
+    def handler(request):
+        calls.append(1)
+        return httpx.Response(200, json={"message": {"content": json.dumps({**VALID, "category": "Weather"})}})
+
+    llm = ex.OllamaExtractor(model="test-model", url="http://ollama.test")
+    llm.client = httpx.Client(base_url="http://ollama.test", transport=httpx.MockTransport(handler))
+    extractor = ex.Extractor(fallback=fallback_model, use_llm=True, provider="ollama")
+    extractor._llm = llm
+    result = extractor.extract("There is no water supply in Block C hostel since this morning.", "Block C Boys Hostel")
+    assert len(calls) == 2
+    assert result.method == "fallback" and result.category == "Water and Plumbing"
+
+
 def test_provider_selection():
     assert isinstance(ex.make_llm("ollama"), ex.OllamaExtractor)
-    assert ex.llm_available("ollama") in (True, False)
+    assert ex.llm_available("ollama") is False  # the test suite sets TRIAGE_DISABLE_LLM=1
+    assert ex.llm_model_name("ollama") == ex.OLLAMA_MODEL

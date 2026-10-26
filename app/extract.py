@@ -25,7 +25,8 @@ from sklearn.pipeline import FeatureUnion, Pipeline
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 from app.config import (
-    ANTHROPIC_MODEL, COMPLAINTS_CSV, MODELS_DIR, OLLAMA_MODEL, OLLAMA_URL, PROVIDER, has_anthropic_key,
+    ANTHROPIC_MODEL, COMPLAINTS_CSV, LLM_ENABLED, MODELS_DIR, OLLAMA_MODEL, OLLAMA_TEMPERATURE, OLLAMA_TIMEOUT,
+    OLLAMA_URL, PROVIDER, has_anthropic_key,
 )
 from app.taxonomy import load_taxonomy
 
@@ -192,19 +193,21 @@ class OllamaExtractor(StructuredLLM):
 
     name = "ollama"
 
-    def __init__(self, model: str = OLLAMA_MODEL, url: str = OLLAMA_URL) -> None:
+    def __init__(self, model: str = OLLAMA_MODEL, url: str = OLLAMA_URL, timeout: float = OLLAMA_TIMEOUT,
+                 temperature: float = OLLAMA_TEMPERATURE) -> None:
         super().__init__()
         import httpx
 
         self.model = model
-        self.client = httpx.Client(base_url=url.rstrip("/"), timeout=120)
+        self.temperature = temperature
+        self.client = httpx.Client(base_url=url.rstrip("/"), timeout=timeout)
 
     def _call(self, user_content: str) -> str:
         response = self.client.post("/api/chat", json={
             "model": self.model,
             "stream": False,
             "format": _json_schema(),  # Ollama constrains decoding to this JSON schema
-            "options": {"temperature": 0},
+            "options": {"temperature": self.temperature},
             "messages": [
                 {"role": "system", "content": _system_prompt()},
                 {"role": "user", "content": user_content},
@@ -216,19 +219,34 @@ class OllamaExtractor(StructuredLLM):
         return data["message"]["content"]
 
 
-def ollama_available(url: str = OLLAMA_URL) -> bool:
-    """True when an Ollama server answers at `url`."""
+def _same_model(installed: str, wanted: str) -> bool:
+    """Ollama lists "qwen2.5:3b"; a bare "qwen2.5" means the ":latest" tag."""
+    norm = lambda name: name if ":" in name else f"{name}:latest"  # noqa: E731
+    return norm(installed) == norm(wanted)
+
+
+def ollama_available(url: str = OLLAMA_URL, model: str = OLLAMA_MODEL) -> bool:
+    """True only when an Ollama server answers at `url` AND `model` is installed there."""
     import httpx
 
     try:
-        return httpx.get(f"{url.rstrip('/')}/api/tags", timeout=2).status_code == 200
-    except httpx.HTTPError:
+        response = httpx.get(f"{url.rstrip('/')}/api/tags", timeout=2)
+        if response.status_code != 200:
+            return False
+        return any(_same_model(m.get("name", ""), model) for m in response.json().get("models", []))
+    except (httpx.HTTPError, ValueError):
         return False
 
 
 def llm_available(provider: str = PROVIDER) -> bool:
     """Whether the configured provider can be called right now."""
-    return ollama_available() if provider == "ollama" else has_anthropic_key()
+    if provider == "ollama":
+        return LLM_ENABLED and ollama_available()
+    return has_anthropic_key()
+
+
+def llm_model_name(provider: str = PROVIDER) -> str:
+    return OLLAMA_MODEL if provider == "ollama" else ANTHROPIC_MODEL
 
 
 def make_llm(provider: str = PROVIDER) -> StructuredLLM:
@@ -375,12 +393,31 @@ def fallback_extract(model: FallbackClassifier, masked_text: str, location_hint:
 class Extractor:
     """Tries the configured LLM provider first (Claude by default), falls back to the local classifier."""
 
+    AVAILABILITY_TTL = 30.0  # seconds; with use_llm=None, re-check so a provider started later is picked up
+
     def __init__(self, fallback: FallbackClassifier | None = None, use_llm: bool | None = None,
                  provider: str = PROVIDER) -> None:
         self._fallback = fallback
         self.provider = provider
-        self.use_llm = llm_available(provider) if use_llm is None else use_llm
+        self._fixed = use_llm
+        self._checked_at = float("-inf")
+        self._available = False
         self._llm: StructuredLLM | None = None
+
+    @property
+    def use_llm(self) -> bool:
+        if self._fixed is not None:
+            return self._fixed
+        import time
+
+        if time.monotonic() - self._checked_at > self.AVAILABILITY_TTL:
+            self._available = llm_available(self.provider)
+            self._checked_at = time.monotonic()
+        return self._available
+
+    @use_llm.setter
+    def use_llm(self, value: bool) -> None:
+        self._fixed = value
 
     @property
     def fallback(self) -> FallbackClassifier:
