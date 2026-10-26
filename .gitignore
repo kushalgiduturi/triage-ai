@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+env/
+
+# Secrets - never commit
+.env
+.env.*
+!.env.example
+
+# Runtime artefacts (rebuilt by `python -m app.seed`)
+*.db
+*.db-journal
+*.faiss
+*.index
+data/faiss_ids.json
+models/
+
+# Caches
+.cache/
+.ipynb_checkpoints/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

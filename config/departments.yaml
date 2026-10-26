@@ -1,0 +1,229 @@
+# TriageAI routing table.
+#
+# This file is the single source of truth for the taxonomy. The LLM is only
+# allowed to pick a (category, sub_issue) pair that exists here; it never
+# invents departments. Each sub_issue maps to:
+#   department    - the team that should own the complaint
+#   sla_hours     - target time to first action
+#   next_action   - the standard operating step the reviewer can dispatch
+#   base_severity - 1 (trivial) .. 5 (life-safety); used when the LLM is offline
+
+manual_triage_department: Needs manual triage
+confidence_threshold: 0.6
+
+categories:
+  Water and Plumbing:
+    no_water_supply:
+      department: Water Works & Plumbing
+      sla_hours: 6
+      next_action: Check overhead tank and pump status; arrange water tanker if supply cannot be restored within 6 hours.
+      base_severity: 4
+    leakage:
+      department: Water Works & Plumbing
+      sla_hours: 24
+      next_action: Send plumber to inspect and seal the leaking pipe or tap.
+      base_severity: 2
+    contaminated_water:
+      department: Water Works & Plumbing
+      sla_hours: 6
+      next_action: Stop drinking-water supply at the point, collect a sample for testing, and clean the tank or filter.
+      base_severity: 4
+    blocked_drain:
+      department: Water Works & Plumbing
+      sla_hours: 24
+      next_action: Dispatch plumbing crew with drain-cleaning equipment.
+      base_severity: 2
+    water_cooler_broken:
+      department: Water Works & Plumbing
+      sla_hours: 48
+      next_action: Raise repair ticket for the water cooler/RO unit and place a temporary dispenser.
+      base_severity: 1
+
+  Electricity:
+    power_outage:
+      department: Electrical Maintenance
+      sla_hours: 4
+      next_action: Check feeder and transformer; switch to backup generator for affected blocks.
+      base_severity: 3
+    electric_shock_hazard:
+      department: Electrical Maintenance
+      sla_hours: 1
+      next_action: Isolate the circuit immediately, cordon off the area, and send a licensed electrician.
+      base_severity: 5
+    sparking_wiring:
+      department: Electrical Maintenance
+      sla_hours: 2
+      next_action: Cut power to the affected board and replace damaged wiring.
+      base_severity: 4
+    lights_fans_not_working:
+      department: Electrical Maintenance
+      sla_hours: 48
+      next_action: Raise a routine repair ticket for lights/fans.
+      base_severity: 1
+    voltage_fluctuation:
+      department: Electrical Maintenance
+      sla_hours: 24
+      next_action: Inspect stabiliser and load distribution for the block.
+      base_severity: 2
+
+  Roads and Infrastructure:
+    potholes_road_damage:
+      department: Civil Works & Infrastructure
+      sla_hours: 72
+      next_action: Barricade the damaged stretch and schedule patch repair.
+      base_severity: 2
+    streetlight_not_working:
+      department: Civil Works & Infrastructure
+      sla_hours: 48
+      next_action: Replace lamp or fix the streetlight connection.
+      base_severity: 2
+    building_structural_damage:
+      department: Civil Works & Infrastructure
+      sla_hours: 12
+      next_action: Send structural engineer to inspect; restrict access to the area if unsafe.
+      base_severity: 4
+    lift_not_working:
+      department: Civil Works & Infrastructure
+      sla_hours: 12
+      next_action: Call the lift AMC vendor and put an out-of-service notice.
+      base_severity: 3
+    broken_furniture:
+      department: Civil Works & Infrastructure
+      sla_hours: 72
+      next_action: Raise carpentry repair ticket.
+      base_severity: 1
+
+  Sanitation and Cleanliness:
+    garbage_not_collected:
+      department: Sanitation & Housekeeping
+      sla_hours: 24
+      next_action: Schedule garbage pickup and check the collection roster.
+      base_severity: 2
+    dirty_washrooms:
+      department: Sanitation & Housekeeping
+      sla_hours: 12
+      next_action: Assign housekeeping staff for deep cleaning and update the cleaning log.
+      base_severity: 2
+    sewage_overflow:
+      department: Sanitation & Housekeeping
+      sla_hours: 6
+      next_action: Send sewage suction vehicle and disinfect the area.
+      base_severity: 4
+    pest_infestation:
+      department: Sanitation & Housekeeping
+      sla_hours: 48
+      next_action: Schedule pest control treatment for the area.
+      base_severity: 2
+    stray_animals:
+      department: Sanitation & Housekeeping
+      sla_hours: 24
+      next_action: Inform the animal-care volunteer team / municipal animal control.
+      base_severity: 2
+
+  Hostel and Mess:
+    food_quality:
+      department: Hostel & Mess Committee
+      sla_hours: 24
+      next_action: Mess committee to inspect today's menu and kitchen; take feedback from students.
+      base_severity: 2
+    food_poisoning:
+      department: Campus Health Centre
+      sla_hours: 1
+      next_action: Send medical team to affected students, preserve food samples, and suspend the suspected dish.
+      base_severity: 5
+    mess_hygiene:
+      department: Hostel & Mess Committee
+      sla_hours: 24
+      next_action: Conduct surprise hygiene inspection of the mess kitchen.
+      base_severity: 3
+    room_allocation:
+      department: Hostel Warden Office
+      sla_hours: 72
+      next_action: Warden to review the allocation request and respond to the student.
+      base_severity: 1
+    hostel_maintenance:
+      department: Hostel Warden Office
+      sla_hours: 48
+      next_action: Log the maintenance issue with the hostel caretaker.
+      base_severity: 2
+
+  IT and WiFi:
+    wifi_down:
+      department: IT Services
+      sla_hours: 4
+      next_action: Check access points and switch for the area; restart controller if needed.
+      base_severity: 3
+    slow_internet:
+      department: IT Services
+      sla_hours: 24
+      next_action: Run bandwidth diagnostics for the area and check for congestion.
+      base_severity: 2
+    portal_login_issue:
+      department: IT Services
+      sla_hours: 12
+      next_action: Verify the account on the student portal and reset credentials if required.
+      base_severity: 2
+    lab_computer_fault:
+      department: IT Services
+      sla_hours: 48
+      next_action: Raise hardware ticket for the lab system.
+      base_severity: 1
+    email_account_issue:
+      department: IT Services
+      sla_hours: 24
+      next_action: Check mailbox status and quota; restore access.
+      base_severity: 1
+
+  Safety and Harassment:
+    harassment:
+      department: Internal Complaints Committee
+      sla_hours: 2
+      next_action: Escalate confidentially to the ICC; ensure the complainant's safety and do not share identity.
+      base_severity: 5
+    ragging:
+      department: Anti-Ragging Committee
+      sla_hours: 2
+      next_action: Alert the anti-ragging squad and warden; protect the complainant's identity.
+      base_severity: 5
+    theft:
+      department: Campus Security
+      sla_hours: 12
+      next_action: Security to record the incident, review CCTV, and advise on a police report.
+      base_severity: 3
+    fire_hazard:
+      department: Fire & Emergency Safety
+      sla_hours: 1
+      next_action: Dispatch fire safety officer immediately; evacuate if needed.
+      base_severity: 5
+    unsafe_area:
+      department: Campus Security
+      sla_hours: 24
+      next_action: Increase patrolling in the area and review lighting/CCTV coverage.
+      base_severity: 3
+
+  Academic and Administrative:
+    exam_schedule_clash:
+      department: Examination Cell
+      sla_hours: 48
+      next_action: Examination cell to verify the timetable and publish a correction.
+      base_severity: 2
+    fee_refund:
+      department: Accounts Office
+      sla_hours: 120
+      next_action: Accounts office to check the refund status and reply with a timeline.
+      base_severity: 1
+    certificate_delay:
+      department: Academic Section
+      sla_hours: 120
+      next_action: Academic section to check the certificate request and share a date.
+      base_severity: 1
+    attendance_error:
+      department: Academic Section
+      sla_hours: 72
+      next_action: Forward to the department coordinator to verify attendance records.
+      base_severity: 2
+    faculty_conduct:
+      department: Academic Section
+      sla_hours: 72
+      next_action: Forward to the Head of Department for review.
+      base_severity: 2
