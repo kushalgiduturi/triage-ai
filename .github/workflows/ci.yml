@@ -38,7 +38,7 @@ jobs:
           npm run build
 
       - name: Unit tests
-        run: pytest -q
+        run: pytest -q --cov=app --cov=triageai --cov-report=term
 
       - name: Eval smoke test
         run: python eval/evaluate.py --smoke

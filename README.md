@@ -1,210 +1,155 @@
----
-title: TriageAI
-emoji: 🚦
-colorFrom: red
-colorTo: yellow
-sdk: docker
-app_port: 7860
-pinned: false
-license: mit
-short_description: AI complaint triage that recommends, humans decide
----
+# TriageAI
 
-# 🚦 TriageAI
+AI complaint triage for campus grievance cells and public service teams: it reads each complaint, masks personal data, works out the issue and its urgency, groups duplicate reports into one incident, and recommends a department and next action.
 
-**AI complaint triage for campuses and public service teams.** TriageAI reads each complaint, works out the issue and its urgency, spots duplicate reports of the same incident, and recommends a department and next action. **The AI only recommends — every decision is made by a human reviewer.**
+**The AI recommends. A human always decides.**
 
-- **Live demo:** https://triage-ai-g8f8.onrender.com (Render free plan: the first visit after 15 idle minutes takes about a minute to wake up)
-- **GitHub:** https://github.com/kushalgiduturi/triage-ai
-- **Demo script (3 min):** [DEMO_SCRIPT.md](DEMO_SCRIPT.md)
+[Live demo](https://triage-ai-g8f8.onrender.com) · Demo video: not recorded yet ([3-minute demo script](DEMO_SCRIPT.md)) · [Results](docs/RESULTS.md)
 
-## Screenshots
+[![CI](https://github.com/kushalgiduturi/triage-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/kushalgiduturi/triage-ai/actions/workflows/ci.yml)
+[![coverage 85%](https://img.shields.io/badge/coverage-85%25-0369A1)](docs/RESULTS.md)
+[![License: MIT](https://img.shields.io/badge/license-MIT-0369A1)](LICENSE)
 
-| Review queue | Complaint detail |
-|---|---|
-| ![Review queue](docs/screenshots/queue.png) | ![Complaint detail](docs/screenshots/detail.png) |
-| **Submit complaint** | **Analytics** |
-| ![Submit complaint](docs/screenshots/submit.png) | ![Analytics](docs/screenshots/analytics.png) |
+![Review queue](docs/screenshots/queue-1440.png)
 
-Every page at 1440, 1024 and 768 px is in [`docs/screenshots/`](docs/screenshots) as `<page>-<width>.png` (queue, detail, submit, analytics, audit).
+## Problem
+
+A grievance cell receives a steady stream of complaints by form, email and chat: in English, Hinglish and Telugu-English, full of typos, and often several people reporting the same broken thing. Staff spend their time reading, re-typing, searching for earlier reports and looking up who owns each issue, while the one complaint about an electric shock waits in the same pile as a broken chair.
+
+## Who it is for
+
+A campus grievance cell with 2 staff handling about 300 complaints a week. TriageAI prepares each complaint so a reviewer only has to check and decide.
+
+Time saved per complaint: **not measured yet** (no human was available to time). A clearly labelled estimate of about 2 minutes per complaint, and the protocol to measure it properly, are in [docs/RESULTS.md](docs/RESULTS.md#time-saved). The machine part is measured: 0.04 s per complaint.
 
 ## What it does
 
-| Step | Module | What happens |
-|---|---|---|
-| 1. Mask PII | `app/pii.py` | Names, phones, emails and ID numbers are replaced with `[NAME]`, `[PHONE]`, … **before** any text reaches the LLM or the embedding model. |
-| 2. Extract | `app/extract.py` | Claude returns a strict JSON object (category, sub-issue, location, one-line summary, safety risk, people affected, sentiment, severity, confidence, reasoning). Enums come from the fixed taxonomy; Pydantic validates; one retry on invalid output; TF-IDF + logistic-regression fallback if the API is unavailable. |
-| 3. Find duplicates | `app/duplicates.py` | Multilingual sentence embeddings (paraphrase-multilingual-MiniLM-L12-v2 on ONNX Runtime) in a FAISS index; top-5 neighbours; >0.85 = likely duplicate, 0.65–0.85 = related; boosts for same category / location. Duplicates are grouped into an **incident**. |
-| 4. Score urgency | `app/urgency.py` | Hard safety rules force **Critical** (fire, injury, electric shock, harassment, assault, gas leak, ragging, food poisoning, no water 24h+). Otherwise an additive 0–100 score from LLM severity, people affected, number of reports in the incident, hours open and safety flags — with a plain-English reason. |
-| 5. Route | `app/routing.py` | `config/departments.yaml` maps (category, sub-issue) → department, SLA and standard next action. The LLM can only pick rows from this table. Confidence < 0.6 → **Needs manual triage** queue. |
-| 6. Review | `app/main.py`, `frontend/` | A reviewer approves, edits, rejects or merges. Every action is written to `audit_log` with timestamp, reviewer, old value and new value. **Nothing is ever dispatched automatically.** |
+1. **PII masking.** Names, phone numbers, emails and ID numbers are replaced with `[NAME]`, `[PHONE]`, `[EMAIL]` and `[ID]` before any text reaches a model.
+2. **Extraction.** An LLM returns category, sub-issue, location, a one-line summary, safety risk, people affected, severity, confidence and reasoning as validated JSON, constrained to a fixed taxonomy. An offline TF-IDF classifier takes over when no LLM is available.
+3. **Urgency scoring.** Safety rules (fire, electric shock, injury, harassment, gas leak, no water for 24 hours or more) force Critical. Otherwise a 0 to 100 score combines severity, people affected, number of reports and time open, with a plain-English reason.
+4. **Duplicate grouping.** Multilingual sentence embeddings in a FAISS index group repeat reports into one incident; more reports raise the incident's urgency.
+5. **Recommendation.** A routing table maps each issue to a department, SLA and standard next action. Below 0.6 confidence the complaint goes to a manual-triage queue instead.
+6. **Human review with audit log.** A reviewer approves, edits, rejects or merges. Every action is logged with who, when, the old value and the new value. Nothing is ever dispatched automatically.
 
 ## Architecture
 
 ```
-            Browser ── React + Vite + Tailwind (built to frontend/dist, hash routes #/...)
-               │        Review Queue · Complaint Detail · Submit · Analytics · Audit Log
-               │ same origin, port 7860
-┌──────────────▼──────────────────────────── FastAPI (one process) ─────────────────────────────────┐
-│  GET /  ─► static React build                                                                     │
-│                                                                                                   │
-│  POST /complaints ─► pii.mask ─► extract (Claude JSON schema ─► Pydantic ─► retry ─► TF-IDF)       │
-│                                     │                                                             │
-│                                     ▼                                                             │
-│                      duplicates (MiniLM embeddings ─► FAISS top-5 ─► thresholds ─► incident)       │
-│                                     │                                                             │
-│                                     ▼                                                             │
-│                      urgency (safety rules ─► score: severity + people + reports + age)            │
-│                                     │                              ▲ incident size feeds back     │
-│                                     ▼                                                             │
-│                      routing (departments.yaml; confidence < 0.6 ─► "Needs manual triage")         │
-│                                     │                                                             │
-│                                     ▼                                                             │
-│      SQLite: complaints (status = pending) · incidents · audit_log         FAISS index on disk    │
-│                                                                                                   │
-│  GET /complaints · GET /complaints/{id} · POST /complaints/{id}/review · GET /metrics · GET /audit│
-└───────────────────────────────────────────────────────────────────────────────────────────────────┘
-                 ▲
-human reviewer ──┘ approve / edit / reject / merge ─► audit_log (who, when, old value → new value)
+ intake                      FastAPI (one process, port 7860)
+ (web form, API,      ┌──────────────────────────────────────────────────────────────┐
+  library call)  ───► │ PII masking ─► extraction ─► urgency ◄─┐                      │
+                      │  app/pii.py    app/extract.py           │ incident size        │
+                      │                (Claude / Ollama /       │                      │
+                      │                 TF-IDF fallback)        │                      │
+                      │                      │                  │                      │
+                      │                      ▼                  │                      │
+                      │               duplicates ───────────────┘                      │
+                      │               app/duplicates.py (embeddings + FAISS)           │
+                      │                      │                                         │
+                      │                      ▼                                         │
+                      │               routing (config/departments.yaml)                │
+                      │                      │                                         │
+                      │                      ▼                                         │
+                      │   SQLite: complaints (status = pending) · incidents · audit log│
+                      └──────────────┬───────────────────────────────┬────────────────┘
+                                     ▼                               ▼
+                       review UI (React, frontend/)          export (GET /export.csv,
+                       approve · edit · reject · merge        masked text only)
+                                     │
+                                     ▼
+                       audit log: reviewer, time, old value, new value
 ```
-
-## Two editions
-
-The repository holds two editions of the same app. The only difference is how complaint embeddings are computed; the model, the pipeline, the UI and the results are the same.
-
-| | **Full edition** (run locally) | **Lite edition** (deployed) |
-|---|---|---|
-| Embeddings | sentence-transformers + torch | ONNX Runtime, 8-bit quantized export of the same model |
-| Tokenizer | Hugging Face tokenizer | SentencePiece from the same model repo (identical token ids) |
-| Memory (measured in Docker) | about 980 MB after start, 995 MB under load (killed under a 512 MB limit) | about 350 MB after start, 360 MB under load |
-| Docker image | 2.8 GB | 1.1 GB |
-| Install | `pip install -r requirements.txt` | `pip install -r requirements-lite.txt` |
-| Container | `Dockerfile.full` | `Dockerfile` (used by Render) |
-| Fits a free 512 MB host | No | Yes |
-
-Both editions produce the same evaluation results: the ONNX vectors match sentence-transformers at 0.993 mean cosine, and every metric in the table below is identical. `TRIAGE_EMBEDDINGS=auto` (the default) uses sentence-transformers when it is installed and ONNX otherwise; set `TRIAGE_EMBEDDINGS=onnx` or `sentence-transformers` to force one. The FAISS index records which backend built it, and an index from the other edition is ignored and rebuilt from the database rather than mixed.
 
 ## Quick start
 
-**Full edition (local):**
+Needs Python 3.10 or newer, Node 20 and `make`. Takes a few minutes.
 
 ```bash
-pip install -r requirements.txt   # includes torch; for CPU-only torch run first: pip install torch --index-url https://download.pytorch.org/whl/cpu
-cp .env.example .env              # add ANTHROPIC_API_KEY (optional: the app works offline without it)
-python -m app.seed                # builds data/triage.db + FAISS index from the 400 synthetic complaints
-cd frontend && npm install && npm run build && cd ..
-uvicorn app.main:app --port 7860
+git clone https://github.com/kushalgiduturi/triage-ai.git
+cd triage-ai
+make setup
+cp .env.example .env
+make demo
 ```
 
-Open http://localhost:7860. FastAPI serves both the API and the built UI.
+Open http://localhost:7860. The queue is pre-seeded with 400 synthetic complaints. Add `ANTHROPIC_API_KEY` to `.env` to use Claude; without it the app runs offline. `make help` lists every command. On Windows without `make`, run the commands under each target in the [Makefile](Makefile).
 
-**Lite edition (local):** the same steps with `pip install -r requirements-lite.txt`.
+## Use as a library
 
-**With Docker:**
+From the repository root (or after `pip install -e .`):
+
+```python
+from triageai import Pipeline
+pipe = Pipeline(provider="claude")  # falls back to the offline classifier without ANTHROPIC_API_KEY
+result = pipe.triage("Kal raat se Block A hostel mein bijli nahi hai, generator bhi band hai. - Sneha Reddy 98480 12345", location="Block A Boys Hostel")
+print(result["category"], "|", result["urgency"], "|", result["department"], "|", result["method"])
+print(result["masked_text"])
+```
+
+Output without an API key:
+
+```
+Electricity | Medium | Electrical Maintenance | fallback
+Kal raat se Block A hostel mein bijli nahi hai, generator bhi band hai. - [NAME] [PHONE]
+```
+
+This exact example runs in the test suite (`tests/test_library.py`).
+
+## Switching the model provider
+
+Claude is the default. To use an open-source model through [Ollama](https://ollama.com) instead:
 
 ```bash
-docker build -t triage-ai .                          # Lite edition (what is deployed)
-docker build -f Dockerfile.full -t triage-ai-full .  # Full edition
-docker run -p 7860:7860 -e ANTHROPIC_API_KEY=... triage-ai
+ollama pull llama3.1:8b
+PROVIDER=ollama OLLAMA_MODEL=llama3.1:8b make demo
 ```
 
-For frontend development with hot reload, run the backend on any port and point Vite at it (CORS is enabled):
+Both providers get the same masked prompt and the same JSON schema, and their answers go through the same validation. `/health` reports which provider is active.
 
-```bash
-uvicorn app.main:app --port 8000
-cd frontend && VITE_API_URL=http://localhost:8000 npm run dev    # http://localhost:5173
-```
+## Results
 
-Other commands:
+Summary from [docs/RESULTS.md](docs/RESULTS.md), which has the reproduce command for every number, the error analysis and the limitations.
 
-```bash
-python data/generate_synthetic.py --mode llm   # regenerate complaint text with Claude (needs a key)
-python eval/evaluate.py                        # full evaluation -> eval/metrics.json + confusion matrices
-python eval/evaluate.py --llm                  # same, with Claude extraction and Claude rewrites for the bias test
-pytest -q                                      # unit + API tests (offline)
-```
+| Metric | Rule-only | TF-IDF + LogReg | TriageAI (LLM) |
+|---|---|---|---|
+| Category accuracy | 0.930 | 0.900 | not measured |
+| Urgency macro-F1 | 0.885 | 0.898 | not measured |
+| Duplicate precision / recall (thr 0.85) | 0.912 / 0.841 | 0.896 / 0.752 | not measured |
+| Routing accuracy | 0.925 | 0.900 | not measured |
+| Latency per complaint | 0.036 s | 0.040 s | not measured |
+| Cost per 1000 complaints | USD 0 | USD 0 | not measured |
+| PII leaks to the LLM prompt | | 0 of 453 (tuning set), 240 of 444 (held-out set, all names) | |
+| Bias consistency (8 rewrites, 20 complaints) | 85% | 80% | not measured |
 
-## API
-
-| Method | Path | Purpose |
-|---|---|---|
-| `POST` | `/complaints` | Submit `{text, location?, reported_at?}`; runs the full pipeline; returns the triage card (status `pending`). |
-| `GET` | `/complaints` | Review queue sorted by urgency → score → oldest. Filters: `category`, `urgency`, `status`, `department`, `search`. |
-| `GET` | `/complaints/{id}` | Full triage card: original + masked text, AI suggestion and reasoning, confidence, similar/duplicate complaints, incident, audit log. |
-| `POST` | `/complaints/{id}/review` | `{action: approve|edit|reject|merge, reviewer, notes?, category?, sub_issue?, urgency?, department?, merge_into?}` |
-| `GET` | `/metrics` | Accuracy vs synthetic ground truth, model–human agreement, distributions, incidents, bias by language style, latest offline evaluation. |
-| `GET` | `/audit` | Global audit log, newest first (`include_ai=true` adds the AI's initial suggestions). |
-| `GET` | `/incidents`, `/taxonomy`, `/locations`, `/health` | Supporting endpoints. Interactive docs at `/docs`. |
-
-## Evaluation
-
-Offline run (no API key): extraction uses the TF-IDF fallback with 5-fold GroupKFold, so every complaint is scored by a model that never saw it or any report of the same incident. Embeddings use the multilingual MiniLM model on ONNX Runtime (8-bit quantized). n = 400.
-
-| Metric | Result |
-|---|---|
-| Category accuracy | **90.0%** |
-| Sub-issue accuracy | 87.5% |
-| Urgency macro-F1 | **0.896** (accuracy 89.0%; per class: Low 0.88, Medium 0.89, High 0.85, Critical 0.96) |
-| Duplicate precision / recall (pairs) | **0.903 / 0.751** (F1 0.820; 22 of 25 planted clusters recovered) |
-| Routing accuracy (recommended department) | **90.0%** (100.0% on the 70% that were confident enough to auto-route) |
-| Manual triage rate (confidence < 0.6) | 30% |
-| Bias check: urgency identical across rewrites | **80%** of 20 complaints × 8 versions (original, English, Hinglish, Telugu-English, formal, angry, polite, casual) |
-
-How duplicate detection was tuned: with raw-text embeddings only, the same incident written in English, Hinglish and Telugu-English has a median cosine of about 0.6, so the 0.85 threshold recovered just 20% of duplicate pairs. Each complaint vector is now `embed(masked text) + embed("<category>: <sub-issue>")`, and a likely duplicate must share the sub-issue, place and 7-day window. That raised pair F1 from 0.35 to 0.82.
-
-Run `python eval/evaluate.py --llm` with a key to measure the Claude path (Claude also writes the bias-test rewrites in that mode).
-
-Confusion matrices: [`eval/confusion_matrix.png`](eval/confusion_matrix.png) (category), [`eval/urgency_confusion_matrix.png`](eval/urgency_confusion_matrix.png). Raw numbers: [`eval/metrics.json`](eval/metrics.json).
+The LLM column is empty because no API key or local model was available when these were measured. The rule-only baseline beats the learned model mainly because the same person wrote its rules and the synthetic data.
 
 ## Responsible AI
 
-**Synthetic data only.** All 400 complaints are generated by `data/generate_synthetic.py` (fixed seed). Names, phone numbers, emails and roll numbers in the data are fake (emails use the reserved `example.com/.edu/.org` domains). No real person, place or incident is described.
+- **Synthetic data only.** All 400 complaints are generated ([datasheet](docs/DATASHEET.md)). Names, phone numbers and emails are fake.
+- **PII masking with a leak test.** Masking runs before every model call, and `make test-pii` checks the exact LLM prompt for 120 Indian-style complaints. Phones, emails and IDs did not leak on either set, but rule-based name masking failed on new phrasings (every name leaked on the held-out set). See the upstream contribution below.
+- **Human in the loop.** Every suggestion starts as pending. Only a named reviewer can change it, Reject and Merge ask for confirmation, and there is no dispatch endpoint.
+- **Audit log.** The AI's suggestion and every human action are recorded with reviewer, time, old value and new value.
+- **Confidence on every suggestion.** Shown on each card; below 0.6 the complaint is queued for manual triage instead of a department.
+- **Bias test.** `make test-bias` rewrites complaints in different tones and dialects and checks urgency stays the same. The Analytics page compares outcomes across writing styles.
 
-**PII masking before AI.** `app/pii.py` masks names, phone numbers, emails and ID numbers with regular expressions plus simple rules (cue phrases such as "my name is", "regards", "mera naam", "naa peru"; honorifics; a first-name list) before the text goes to Claude or to the embedding model. The original text is kept in the database because reviewers may need it, but it is shown in a separate tab (masked text is the default view), never sent to the model, and the masked values are not stored a second time — only their types. The rules are deliberately conservative so location words ("Block A", "Girls Hostel 2") are not masked; a production system should add an NER model.
+## Limitations
 
-**Human in the loop.** The pipeline writes a *suggestion* with status `pending`. A complaint only changes state through `POST /complaints/{id}/review`, which requires a named reviewer. There is no dispatch endpoint — approving records the human decision; it does not send anything anywhere. The detail page opens with *"AI suggestion only. Human decision required."*, and Reject and Merge ask for confirmation. Low-confidence suggestions (< 0.6) are routed to a **Needs manual triage** queue instead of a department.
+- All results come from synthetic data written by the same person who wrote the rules, so they overstate real-world accuracy.
+- The LLM path has not been measured.
+- Rule-based name masking misses names in unfamiliar phrasings.
+- Urgency weights are hand-set, not learned from reviewer decisions.
+- Time saved has not been measured with real staff.
+- The public demo has no login and resets its data on restart; it is for synthetic data only.
 
-**Explainability.** Each card shows the model's reasoning, the routing-table row used, a confidence score, and an urgency breakdown that lists every contributing factor and its points (e.g. *"severity 3/5 (+46), 5 reports of the same incident (+20)"*). When a safety rule fires, the card says which one. Duplicate matches show the raw cosine similarity and the boosted score.
+More detail: [design decisions](docs/DESIGN.md), [deployment and the two editions](docs/DEPLOYMENT.md).
 
-**Audit log.** `audit_log` records the AI's original suggestion and every human action (approve / edit / reject / merge) with timestamp, reviewer, old value, new value and notes. It has its own page and is also shown as the history of each complaint. An optional contact field on the submit form is stored for the reviewer but never sent to the model.
+## Upstream contributions
 
-**Constrained outputs.** The LLM chooses from enums generated from `config/departments.yaml`; a Pydantic validator rejects any sub-issue that does not belong to its category, and the API rejects reviewer edits to unknown departments. The extraction prompt treats complaint text as untrusted data (no instruction following).
+In progress: a reproducible report on Microsoft Presidio's handling of Indian, code-mixed complaint text, based on this project's PII leak test. Links will be added here once posted.
 
-**Bias check.** The Analytics page compares urgency, manual-triage rate and accuracy across detected language styles (formal English, casual English, Hinglish, Telugu-English). `eval/evaluate.py` rewrites 20 complaints in different tones and dialects and reports how often urgency stays identical. Findings from the offline run: urgency stayed identical across all versions for 16 of 20 complaints (80%). Of the 4 that changed, 3 changed in a Hinglish or Telugu-English version and 1 in the formal version. None of the changes came from the safety rules; each one is the offline classifier picking a different sub-issue, and with it a different default severity. The worst case was over-escalation: a Hinglish rewrite of a broken-benches complaint was read as a severity-5 issue and scored Critical. The live bias table shows the same weakness. In offline mode, Hinglish and Telugu-English complaints go to manual triage about 1.6–1.9× as often as English ones (43% and 37% vs 22–25%), and their category accuracy is lower (85% vs 92–93%). Low confidence routes a complaint to a person, not to a wrong department, so most of this gap costs reviewer time rather than producing wrong decisions, but it is still a gap. Mitigations: use the Claude path, which handles code-mixed text natively; add more code-mixed training data to the fallback; and keep tracking the table.
+## Roadmap and contributing
 
-**Limitations.** The dataset is synthetic and template-heavy unless regenerated with Claude, so offline accuracy overstates real-world performance. The PII rules will miss unusual names. Urgency weights were hand-set, not learned. Ground-truth urgency is itself a design decision.
+See [docs/ROADMAP.md](docs/ROADMAP.md) for priorities and 5 good first issues, and [CONTRIBUTING.md](CONTRIBUTING.md) to get started. Please follow the [Code of Conduct](CODE_OF_CONDUCT.md) and report security issues as described in [SECURITY.md](SECURITY.md).
 
-## Design decisions and assumptions
+## License
 
-Choices made where the brief was open (all easy to change):
-
-- **Extra fields.** The extraction schema adds `severity` (1–5, feeds urgency) and `confidence` (feeds routing) to the fields in the brief. The CSV adds `true_sub_issue` and `has_pii` columns for evaluation.
-- **Data generation without a key.** `generate_synthetic.py` uses Claude when `ANTHROPIC_API_KEY` is set and otherwise falls back to a phrase bank (`data/scenarios.py`) with typos and code-mixing. The *structure* (clusters, labels, timestamps, PII rows) is identical either way because it comes from the fixed seed. The committed CSV was produced in template mode.
-- **Seeding without a key.** The pre-seeded queue uses the offline classifier with 5-fold GroupKFold so every seeded complaint is predicted by a model that never saw it or its duplicates. Live complaints use Claude whenever a key is configured.
-- **Duplicate guard.** Besides the brief's thresholds and boosts, two complaints that name *different* known locations, or were filed more than 7 days apart, can be "related" at most — "no water in Block A" and "no water in Block C" read almost identically but are different incidents.
-- **Incident urgency.** All reports in an incident share the highest urgency among them; the number of reports adds +4 (2 reports), +8 (3–4) or +20 (5+) points. Without a safety-rule hit or a severity-5 extraction, the score is capped below Critical, so many reports of a broken streetlight can reach High but not Critical.
-- **Merge status.** `merge` adds a fifth status, `merged`, so merged reports leave the pending queue while staying linked to their incident.
-- **Embeddings without torch.** The brief named sentence-transformers. The app runs the same paraphrase-multilingual-MiniLM-L12-v2 model through ONNX Runtime instead, using the 8-bit quantized export (`onnx/model_quint8_avx2.onnx`, 118 MB) published in the model's own repository and pinned to a revision. That removes torch and shrinks the Docker image. Two more memory fixes were needed to fit 512 MB on Linux: tokenizing with SentencePiece from the same repository (the `tokenizers` library needs about 290 MB to load the 250k-token vocabulary; SentencePiece gives identical token ids for all 400 complaints), and turning off ONNX graph optimisation (it de-quantizes weights at load time, +200 MB). Under a hard 512 MB container limit the app uses about 350 MB after start and 370 MB after serving requests. The sentence-transformers version is kept as the Full edition (see *Two editions*). On the 400 synthetic complaints the ONNX vectors match sentence-transformers at 0.993 mean cosine (minimum 0.953), pairwise similarities correlate at 0.993, and the evaluation metrics are identical to the sentence-transformers run.
-- **Model.** Claude calls use `claude-opus-5-5` (override with `TRIAGE_CLAUDE_MODEL`) at low effort with structured outputs, and opt into the API's server-side refusal fallback.
-- **One port.** FastAPI serves the React build from `/` and the API from its own paths on 7860 (`$PORT`). The UI uses hash routes (`#/complaints/12`) so a page refresh never collides with the JSON route `/complaints/12`.
-- **Colour contrast.** The design palette is white and sky blue, with red only for Critical. White text on `#0EA5E9` is 2.8:1 and on `#0284C7` 4.1:1, both below WCAG AA for 14px text, so buttons and sky-blue text use darker sky shades (`#0369A1`, hover `#075985`, 5.9:1 and 7.6:1). `#0EA5E9` is used for non-text accents: the active-page marker, chart bars and the focus ring. Urgency labels go from `#0369A1` (Low) to `#0C4A6E` (High), getting darker and heavier; Critical is `#DC2626` (4.8:1).
-- **Queue order.** Urgency first, then the time reported (oldest first), so the complaint that has waited longest rises within each level.
-
-## Deployment
-
-- **Render (live demo, free plan):** `render.yaml` is a Blueprint for the Dockerfile. In the Render dashboard choose *New → Blueprint*, pick this repository, and set `ANTHROPIC_API_KEY` when asked (it is declared with `sync: false`, so it never lives in git). The image pre-downloads the ONNX model and builds the seeded database at build time. Free-plan limits: the service sleeps after 15 minutes without traffic, so the first request takes about a minute; and the disk is not persistent, so reviewer actions reset to the seeded state whenever the service restarts or redeploys.
-- **Hugging Face Space:** the front matter at the top of this file (`sdk: docker`, `app_port: 7860`) makes the repository deployable as a Docker Space as-is. Hugging Face now requires a PRO subscription to host Docker Spaces on free CPU, so it is not the live target. On a PRO account, create a Docker Space, upload the repository, and add `ANTHROPIC_API_KEY` under *Settings → Variables and secrets*.
-- **CI:** `.github/workflows/ci.yml` runs the unit tests, the evaluation smoke test and a secret scan on every push.
-
-## Project structure
-
-```
-app/            pii.py · extract.py · urgency.py · duplicates.py · routing.py · pipeline.py · main.py · db.py · seed.py
-config/         departments.yaml (taxonomy + routing table)
-data/           generate_synthetic.py · scenarios.py · complaints.csv
-eval/           evaluate.py · metrics.json · confusion matrices
-frontend/       React + Vite + Tailwind app (5 pages), built into frontend/dist
-tests/          unit + API tests (offline)
-Dockerfile (Lite) · Dockerfile.full (Full) · requirements.txt (Full) · requirements-lite.txt (Lite)
-start.sh · render.yaml · .github/workflows/ci.yml
-```
+[MIT](LICENSE)
