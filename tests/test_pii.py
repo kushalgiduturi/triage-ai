@@ -17,6 +17,8 @@ from app.pii import mask_pii
         ("Naa peru Divya Rao, phone +91 7012345678.", {"NAME", "PHONE"}, ["Divya", "7012345678"]),
         ("- Arjun Gupta, Employee ID EMP4821", {"NAME", "ID"}, ["Arjun", "EMP4821"]),
         ("Please contact Dr. Meena Iyer about this.", {"NAME"}, ["Meena"]),
+        ("Generator band hai. Contact Priya 9876501234", {"NAME", "PHONE"}, ["Priya", "9876501234"]),
+        ("Please call me at 98765 43210, ask Ravi at the gate.", {"NAME", "PHONE"}, ["Ravi", "43210"]),
     ],
 )
 def test_masks_expected_pii(text, expected_types, leaked):

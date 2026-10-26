@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-26T13:06:08",
+  "generated_at": "2026-10-26T13:43:56",
   "mode": "offline fallback (5-fold GroupKFold)",
   "model": "tfidf+logreg",
   "embeddings": "onnx",
@@ -98,5 +98,5 @@
       }
     ]
   },
-  "runtime_seconds": 22.7
+  "runtime_seconds": 23.3
 }

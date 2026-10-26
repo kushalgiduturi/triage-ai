@@ -46,11 +46,12 @@ AADHAAR_RE = re.compile(r"\b\d{4}\s\d{4}\s\d{4}\b")
 _NAME_TOKEN = r"[A-Z][a-z]+"
 NAME_CUE_RE = re.compile(
     r"(?:(?i:my name is|i am|i'm|this is|name\s*[:\-]|regards,?|thanks,?|sincerely,?|"
-    r"mera naam|naa peru|naa paeru|from)\s+|^-\s*|\s-\s)"
+    r"contact(?:\s+me)?(?:\s+at)?\s*[:\-]?|call(?:\s+me)?|mera naam|naa peru|naa paeru|from)\s+|^-\s*|\s-\s)"
     rf"({_NAME_TOKEN}(?:\s{_NAME_TOKEN}){{0,2}})"
 )
 HONORIFIC_RE = re.compile(rf"\b(?:Mr|Mrs|Ms|Miss|Dr|Prof)\.?\s+({_NAME_TOKEN}(?:\s{_NAME_TOKEN})?)")
 FIRST_LAST_RE = re.compile(rf"\b({_NAME_TOKEN})\s+({_NAME_TOKEN})\b")
+KNOWN_FIRST_NAME_RE = re.compile(r"\b(?:" + "|".join(n.capitalize() for n in sorted(COMMON_FIRST_NAMES)) + r")\b")
 
 
 @dataclass(frozen=True)
@@ -92,6 +93,9 @@ def find_pii(text: str) -> list[PIIMatch]:
     for m in FIRST_LAST_RE.finditer(text):
         if m.group(1).lower() in COMMON_FIRST_NAMES and _is_name(m.group(2)):
             add("NAME", m.start(), m.end())
+    # A known first name on its own ("Contact Priya", "ask Ravi") is masked too.
+    for m in KNOWN_FIRST_NAME_RE.finditer(text):
+        add("NAME", m.start(), m.end())
 
     # Resolve overlaps: prefer the longest span, then the earliest.
     found.sort(key=lambda p: (p.start, -(p.end - p.start)))
