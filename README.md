@@ -61,7 +61,7 @@ Time saved per complaint: **not measured yet** (no human was available to time).
 
 ## Quick start
 
-Needs Python 3.10 or newer, Node 20 and `make`. Takes a few minutes.
+Needs Python 3.10 or newer, Node 20 and `make` (on Debian or Ubuntu also `sudo apt install python3-venv`). Takes a few minutes.
 
 ```bash
 git clone https://github.com/kushalgiduturi/triage-ai.git
