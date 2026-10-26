@@ -50,6 +50,23 @@ The PII test builds 120 complaints in Hinglish, Telugu-English and Indian Englis
 
 (3) The audit-log script works, but the only review actions recorded so far are 5 scripted UI tests, not human decisions, so no override rate is reported.
 
+### Comparison with Microsoft Presidio
+
+The same 240 cases run through Presidio's default `AnalyzerEngine` (presidio-analyzer 2.2.365, spaCy 3.8.16, `en_core_web_lg` 3.8.0). A value counts as leaked if any occurrence is not covered by a detection of any type.
+
+| PII values leaked | TriageAI rules, tuning set | Presidio, tuning set | TriageAI rules, held-out set | Presidio, held-out set |
+|---|---|---|---|---|
+| Names | 0 of 209 | 51 of 209 | 240 of 240 | 30 of 240 (4) |
+| Phone numbers | 0 of 109 | 0 of 109 | 0 of 94 | 0 of 94 |
+| Emails | 0 of 36 | 0 of 36 | 0 of 56 | 0 of 56 |
+| IDs (roll and Aadhaar-style numbers) | 0 of 99 | 99 of 99 (5) | 0 of 54 | 53 of 54 |
+| Hostel and block codes flagged as PII | 0 of 120 | 35 of 120 | 0 of 120 | 30 of 120 |
+
+(4) Presidio's statistical name recognition generalises to unseen phrasings far better than TriageAI's rules, but the default English model also tags romanized Hindi and Telugu words as people ("raat se", "light nahi hai", "Shikayat karta"), which over-masks the complaint.
+(5) Roll numbers are not a Presidio entity, and the Aadhaar-style numbers in the test are random digits that correctly fail the Aadhaar checksum. The India-specific recognizers are off by default; with `InAadhaarRecognizer` added, a checksum-valid number is detected in plain, spaced and dashed formats.
+
+Presidio also labels valid Indian mobile numbers as `DATE_TIME` with a higher score than `PHONE_NUMBER`: after default conflict resolution, 32 of the 203 phone numbers would be anonymized as `<DATE_TIME>`. This is reported upstream (see the README). Reproduce: `python eval/pii_leak_test.py --dump-cases eval/results/pii_cases.json`, then `python eval/presidio_compare.py eval/results/pii_cases.json` in an environment with `presidio-analyzer` and `en_core_web_lg`.
+
 ## Time saved
 
 | | Minutes per complaint | Sample size | Status |

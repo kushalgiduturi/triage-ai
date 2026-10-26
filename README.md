@@ -66,6 +66,7 @@ Needs Python 3.10 or newer, Node 20 and `make`. Takes a few minutes.
 ```bash
 git clone https://github.com/kushalgiduturi/triage-ai.git
 cd triage-ai
+python3 -m venv .venv && . .venv/bin/activate   # Windows: py -m venv .venv, then .venv\Scripts\activate
 make setup
 cp .env.example .env
 make demo
