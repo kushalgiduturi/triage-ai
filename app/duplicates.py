@@ -4,7 +4,11 @@ Each complaint is embedded with paraphrase-multilingual-MiniLM-L12-v2 and stored
 in a FAISS inner-product index. The model runs through ONNX Runtime using the
 8-bit quantized export published in the model's own repository, so the app needs
 no torch and fits a 512 MB host (sentence-transformers is still supported as an
-optional backend; the vectors agree to ~0.99 cosine). Vectors are stored L2-normalised, so inner product = cosine similarity.
+optional backend; the vectors agree to ~0.99 cosine).
+
+Two editions share this code (see README "Two editions"):
+  Full (local)     sentence-transformers + torch, uses more than 512 MB
+  Lite (deployed)  ONNX Runtime + SentencePiece, fits in 512 MB Vectors are stored L2-normalised, so inner product = cosine similarity.
 The vector is the sum of two embeddings:
 
     embed(masked complaint text) + embed("<category>: <sub issue>")
@@ -57,6 +61,7 @@ TOP_K = 5
 
 
 class Embedder:
+    name: str  # recorded with the FAISS index so vectors from different backends are never mixed
     dim: int
 
     def encode(self, texts: list[str]) -> np.ndarray:  # pragma: no cover - interface
@@ -75,6 +80,7 @@ class OnnxEmbedder(Embedder):
     de-quantizes weights at load time (+200 MB) without changing the output.
     """
 
+    name = "onnx"
     MAX_TOKENS = 128  # the model's max_seq_length in sentence-transformers
     BOS, PAD, EOS, UNK = 0, 1, 2, 3  # XLM-R special ids; SentencePiece ids are shifted by +1
 
@@ -123,7 +129,9 @@ class OnnxEmbedder(Embedder):
 
 
 class SentenceTransformerEmbedder(Embedder):
-    """Optional backend (needs `pip install sentence-transformers`, which pulls in torch)."""
+    """Full edition backend (requirements.txt): needs sentence-transformers, which pulls in torch."""
+
+    name = "sentence-transformers"
 
     def __init__(self, model_name: str = EMBEDDING_MODEL) -> None:
         from sentence_transformers import SentenceTransformer
@@ -138,6 +146,8 @@ class SentenceTransformerEmbedder(Embedder):
 
 class HashEmbedder(Embedder):
     """Character n-gram hashing vectors. Fast, no download; used in unit tests / CI."""
+
+    name = "hash"
 
     def __init__(self, dim: int = 2048) -> None:
         from sklearn.feature_extraction.text import HashingVectorizer
@@ -154,6 +164,17 @@ _embedder: Embedder | None = None
 _embedder_lock = threading.Lock()
 
 
+def resolve_backend(backend: str = EMBEDDING_BACKEND) -> str:
+    """'auto' means the Full edition's sentence-transformers when installed, else the Lite ONNX backend."""
+    if backend != "auto":
+        return backend
+    try:
+        import sentence_transformers  # noqa: F401
+    except ImportError:
+        return "onnx"
+    return "sentence-transformers"
+
+
 def get_embedder() -> Embedder:
     """Process-wide embedder (the transformer model is loaded once)."""
     global _embedder
@@ -161,7 +182,7 @@ def get_embedder() -> Embedder:
         if _embedder is None:
             backends = {"onnx": OnnxEmbedder, "hash": HashEmbedder,
                         "sentence-transformers": SentenceTransformerEmbedder}
-            _embedder = backends[EMBEDDING_BACKEND]()
+            _embedder = backends[resolve_backend()]()
         return _embedder
 
 
@@ -266,7 +287,7 @@ class DuplicateIndex:
         path.parent.mkdir(parents=True, exist_ok=True)
         with self._lock:
             faiss.write_index(self.index, str(path))
-            meta = {str(k): vars(v) for k, v in self.meta.items()}
+            meta = {"backend": self.embedder.name, "items": {str(k): vars(v) for k, v in self.meta.items()}}
         path.with_suffix(".meta.json").write_text(json.dumps(meta), encoding="utf-8")
 
     @classmethod
@@ -274,8 +295,11 @@ class DuplicateIndex:
         obj = cls(embedder)
         meta_path = path.with_suffix(".meta.json")
         if path.exists() and meta_path.exists():
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
             loaded = faiss.read_index(str(path))
-            if loaded.d == obj.embedder.dim:
+            # Only reuse vectors made by the same backend (e.g. after switching Full <-> Lite the
+            # API re-embeds everything from the database instead of mixing vector spaces).
+            if meta.get("backend") == obj.embedder.name and loaded.d == obj.embedder.dim:
                 obj.index = loaded
-                obj.meta = {int(k): _Meta(**v) for k, v in json.loads(meta_path.read_text(encoding="utf-8")).items()}
+                obj.meta = {int(k): _Meta(**v) for k, v in meta["items"].items()}
         return obj

@@ -1,5 +1,7 @@
-# TriageAI: one container, one port (7860).
-# FastAPI serves the JSON API and the built React app from the same origin.
+# TriageAI - Lite edition (this is what Render deploys).
+# One container, one port (7860): FastAPI serves the JSON API and the built React app.
+# Embeddings run on ONNX Runtime (no torch), so it fits a 512 MB host.
+# For the Full edition (sentence-transformers + torch, > 512 MB) see Dockerfile.full.
 
 # ---- Stage 1: build the React + Vite + Tailwind frontend ----------------------------------
 FROM node:20-alpine AS frontend
@@ -24,8 +26,8 @@ RUN useradd -m -u 1000 user
 WORKDIR /app
 
 # No torch: embeddings run on ONNX Runtime, so the image and memory footprint stay small.
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+COPY requirements-lite.txt .
+RUN pip install -r requirements-lite.txt
 
 # Pre-download the quantized ONNX embedding model so container start-up is fast.
 COPY app/__init__.py app/config.py app/duplicates.py ./app/

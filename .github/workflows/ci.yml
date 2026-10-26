@@ -23,7 +23,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
+          pip install -r requirements-lite.txt  # Lite edition: no torch, fast to install
 
       - uses: actions/setup-node@v5
         with:

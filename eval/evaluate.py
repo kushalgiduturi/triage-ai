@@ -41,9 +41,9 @@ import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 from sklearn.metrics import confusion_matrix, f1_score  # noqa: E402
 
-from app.config import ANTHROPIC_MODEL, COMPLAINTS_CSV, EMBEDDING_BACKEND, has_anthropic_key  # noqa: E402
+from app.config import ANTHROPIC_MODEL, COMPLAINTS_CSV, has_anthropic_key  # noqa: E402
 from app.db import Complaint, make_session_factory  # noqa: E402
-from app.duplicates import DuplicateIndex  # noqa: E402
+from app.duplicates import DuplicateIndex, resolve_backend  # noqa: E402
 from app.extract import Extractor, FallbackClassifier, fallback_extract  # noqa: E402
 from app.pii import mask_pii  # noqa: E402
 from app.pipeline import TriagePipeline  # noqa: E402
@@ -240,7 +240,7 @@ def evaluate(smoke: bool = False, use_llm: bool = False, out_dir: Path | None = 
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         "mode": "claude" if use_llm else "offline fallback (5-fold GroupKFold)",
         "model": ANTHROPIC_MODEL if use_llm else "tfidf+logreg",
-        "embeddings": EMBEDDING_BACKEND,
+        "embeddings": resolve_backend(),
         "n": len(out),
         "category_accuracy": round(float((out.pred_category == out.true_category).mean()), 4),
         "sub_issue_accuracy": round(float((out.pred_sub_issue == out.true_sub_issue).mean()), 4),

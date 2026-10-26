@@ -64,3 +64,23 @@ def test_different_sub_issue_is_at_most_related():
     v = idx.embed_complaint(text, "Hostel and Mess", "food_poisoning")
     matches = idx.search(v, "Hostel and Mess", "Main Mess", T0, sub_issue="food_poisoning")
     assert matches and matches[0].label == "related"
+
+
+def test_resolve_backend_explicit_and_auto():
+    from app.duplicates import resolve_backend
+
+    assert resolve_backend("onnx") == "onnx"
+    assert resolve_backend("hash") == "hash"
+    assert resolve_backend("auto") in ("sentence-transformers", "onnx")
+
+
+def test_index_from_another_backend_is_not_reused(tmp_path):
+    idx = build()
+    path = tmp_path / "x.index"
+    idx.save(path)
+
+    class OtherBackend(HashEmbedder):
+        name = "onnx"
+
+    assert len(DuplicateIndex.load(path, OtherBackend())) == 0  # rebuilt from the DB instead of mixing vectors
+    assert len(DuplicateIndex.load(path, HashEmbedder())) == 2

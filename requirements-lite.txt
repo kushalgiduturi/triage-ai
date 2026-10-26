@@ -1,0 +1,19 @@
+# Lite edition (deployed): ONNX Runtime embeddings, fits a 512 MB host. No torch.
+anthropic>=0.70
+fastapi>=0.110
+uvicorn[standard]>=0.29
+sqlalchemy>=2.0
+pydantic>=2.6
+python-dotenv>=1.0
+pyyaml>=6.0
+numpy>=1.26
+pandas>=2.1
+scikit-learn>=1.4
+joblib>=1.3
+onnxruntime>=1.18
+sentencepiece>=0.2
+huggingface_hub>=0.23
+faiss-cpu>=1.8
+matplotlib>=3.8
+httpx>=0.27
+pytest>=8.0

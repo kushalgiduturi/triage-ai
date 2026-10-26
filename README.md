@@ -66,17 +66,45 @@ short_description: AI complaint triage that recommends, humans decide
 human reviewer ──┘ approve / edit / reject / merge ─► audit_log (who, when, old value → new value)
 ```
 
+## Two editions
+
+The repository holds two editions of the same app. The only difference is how complaint embeddings are computed; the model, the pipeline, the UI and the results are the same.
+
+| | **Full edition** (run locally) | **Lite edition** (deployed) |
+|---|---|---|
+| Embeddings | sentence-transformers + torch | ONNX Runtime, 8-bit quantized export of the same model |
+| Tokenizer | Hugging Face tokenizer | SentencePiece from the same model repo (identical token ids) |
+| Memory (measured in Docker) | about 980 MB after start, 995 MB under load (killed under a 512 MB limit) | about 350 MB after start, 360 MB under load |
+| Docker image | 2.8 GB | 1.1 GB |
+| Install | `pip install -r requirements.txt` | `pip install -r requirements-lite.txt` |
+| Container | `Dockerfile.full` | `Dockerfile` (used by Render) |
+| Fits a free 512 MB host | No | Yes |
+
+Both editions produce the same evaluation results: the ONNX vectors match sentence-transformers at 0.993 mean cosine, and every metric in the table below is identical. `TRIAGE_EMBEDDINGS=auto` (the default) uses sentence-transformers when it is installed and ONNX otherwise; set `TRIAGE_EMBEDDINGS=onnx` or `sentence-transformers` to force one. The FAISS index records which backend built it, and an index from the other edition is ignored and rebuilt from the database rather than mixed.
+
 ## Quick start
 
+**Full edition (local):**
+
 ```bash
-pip install -r requirements.txt
-cp .env.example .env            # add ANTHROPIC_API_KEY (optional: the app works offline without it)
-python -m app.seed              # builds data/triage.db + FAISS index from the 400 synthetic complaints
+pip install -r requirements.txt   # includes torch; for CPU-only torch run first: pip install torch --index-url https://download.pytorch.org/whl/cpu
+cp .env.example .env              # add ANTHROPIC_API_KEY (optional: the app works offline without it)
+python -m app.seed                # builds data/triage.db + FAISS index from the 400 synthetic complaints
 cd frontend && npm install && npm run build && cd ..
 uvicorn app.main:app --port 7860
 ```
 
 Open http://localhost:7860. FastAPI serves both the API and the built UI.
+
+**Lite edition (local):** the same steps with `pip install -r requirements-lite.txt`.
+
+**With Docker:**
+
+```bash
+docker build -t triage-ai .                          # Lite edition (what is deployed)
+docker build -f Dockerfile.full -t triage-ai-full .  # Full edition
+docker run -p 7860:7860 -e ANTHROPIC_API_KEY=... triage-ai
+```
 
 For frontend development with hot reload, run the backend on any port and point Vite at it (CORS is enabled):
 
@@ -92,7 +120,6 @@ python data/generate_synthetic.py --mode llm   # regenerate complaint text with 
 python eval/evaluate.py                        # full evaluation -> eval/metrics.json + confusion matrices
 python eval/evaluate.py --llm                  # same, with Claude extraction and Claude rewrites for the bias test
 pytest -q                                      # unit + API tests (offline)
-docker build -t triage-ai . && docker run -p 7860:7860 -e ANTHROPIC_API_KEY=... triage-ai
 ```
 
 ## API
@@ -155,7 +182,7 @@ Choices made where the brief was open (all easy to change):
 - **Duplicate guard.** Besides the brief's thresholds and boosts, two complaints that name *different* known locations, or were filed more than 7 days apart, can be "related" at most — "no water in Block A" and "no water in Block C" read almost identically but are different incidents.
 - **Incident urgency.** All reports in an incident share the highest urgency among them; the number of reports adds +4 (2 reports), +8 (3–4) or +20 (5+) points. Without a safety-rule hit or a severity-5 extraction, the score is capped below Critical, so many reports of a broken streetlight can reach High but not Critical.
 - **Merge status.** `merge` adds a fifth status, `merged`, so merged reports leave the pending queue while staying linked to their incident.
-- **Embeddings without torch.** The brief named sentence-transformers. The app runs the same paraphrase-multilingual-MiniLM-L12-v2 model through ONNX Runtime instead, using the 8-bit quantized export (`onnx/model_quint8_avx2.onnx`, 118 MB) published in the model's own repository and pinned to a revision. That removes torch and shrinks the Docker image. Two more memory fixes were needed to fit 512 MB on Linux: tokenizing with SentencePiece from the same repository (the `tokenizers` library needs about 290 MB to load the 250k-token vocabulary; SentencePiece gives identical token ids for all 400 complaints), and turning off ONNX graph optimisation (it de-quantizes weights at load time, +200 MB). Under a hard 512 MB container limit the app uses about 350 MB after start and 370 MB after serving requests. sentence-transformers is still available as an optional backend (`TRIAGE_EMBEDDINGS=sentence-transformers`). On the 400 synthetic complaints the ONNX vectors match sentence-transformers at 0.993 mean cosine (minimum 0.953), pairwise similarities correlate at 0.993, and the evaluation metrics are identical to the sentence-transformers run.
+- **Embeddings without torch.** The brief named sentence-transformers. The app runs the same paraphrase-multilingual-MiniLM-L12-v2 model through ONNX Runtime instead, using the 8-bit quantized export (`onnx/model_quint8_avx2.onnx`, 118 MB) published in the model's own repository and pinned to a revision. That removes torch and shrinks the Docker image. Two more memory fixes were needed to fit 512 MB on Linux: tokenizing with SentencePiece from the same repository (the `tokenizers` library needs about 290 MB to load the 250k-token vocabulary; SentencePiece gives identical token ids for all 400 complaints), and turning off ONNX graph optimisation (it de-quantizes weights at load time, +200 MB). Under a hard 512 MB container limit the app uses about 350 MB after start and 370 MB after serving requests. The sentence-transformers version is kept as the Full edition (see *Two editions*). On the 400 synthetic complaints the ONNX vectors match sentence-transformers at 0.993 mean cosine (minimum 0.953), pairwise similarities correlate at 0.993, and the evaluation metrics are identical to the sentence-transformers run.
 - **Model.** Claude calls use `claude-opus-5-5` (override with `TRIAGE_CLAUDE_MODEL`) at low effort with structured outputs, and opt into the API's server-side refusal fallback.
 - **One port.** FastAPI serves the React build from `/` and the API from its own paths on 7860 (`$PORT`). The UI uses hash routes (`#/complaints/12`) so a page refresh never collides with the JSON route `/complaints/12`.
 - **Colour contrast.** The design palette is white and sky blue, with red only for Critical. White text on `#0EA5E9` is 2.8:1 and on `#0284C7` 4.1:1, both below WCAG AA for 14px text, so buttons and sky-blue text use darker sky shades (`#0369A1`, hover `#075985`, 5.9:1 and 7.6:1). `#0EA5E9` is used for non-text accents: the active-page marker, chart bars and the focus ring. Urgency labels go from `#0369A1` (Low) to `#0C4A6E` (High), getting darker and heavier; Critical is `#DC2626` (4.8:1).
@@ -176,5 +203,6 @@ data/           generate_synthetic.py · scenarios.py · complaints.csv
 eval/           evaluate.py · metrics.json · confusion matrices
 frontend/       React + Vite + Tailwind app (5 pages), built into frontend/dist
 tests/          unit + API tests (offline)
-Dockerfile · start.sh · render.yaml · .github/workflows/ci.yml
+Dockerfile (Lite) · Dockerfile.full (Full) · requirements.txt (Full) · requirements-lite.txt (Lite)
+start.sh · render.yaml · .github/workflows/ci.yml
 ```
