@@ -64,39 +64,54 @@ class Embedder:
 
 
 class OnnxEmbedder(Embedder):
-    """paraphrase-multilingual-MiniLM-L12-v2 on ONNX Runtime (no torch).
+    """paraphrase-multilingual-MiniLM-L12-v2 on ONNX Runtime (no torch), sized for a 512 MB host.
 
     Reproduces the sentence-transformers pipeline: tokenize (max 128 tokens),
     run the transformer, mean-pool over the attention mask, L2-normalise.
+
+    Memory choices (measured on Linux): the `tokenizers` library needs ~290 MB to load
+    XLM-R's 250k-token vocabulary, so we tokenize with SentencePiece from the same repo
+    (identical token ids, ~10 MB); and ONNX graph optimisation is off because it
+    de-quantizes weights at load time (+200 MB) without changing the output.
     """
 
     MAX_TOKENS = 128  # the model's max_seq_length in sentence-transformers
+    BOS, PAD, EOS, UNK = 0, 1, 2, 3  # XLM-R special ids; SentencePiece ids are shifted by +1
 
     def __init__(self, model_name: str = EMBEDDING_MODEL, onnx_file: str = EMBEDDING_ONNX_FILE,
                  revision: str = EMBEDDING_REVISION) -> None:
         import onnxruntime as ort
+        import sentencepiece as spm
         from huggingface_hub import hf_hub_download
-        from tokenizers import Tokenizer
 
         repo = model_name if "/" in model_name else f"sentence-transformers/{model_name}"
         model_path = hf_hub_download(repo, onnx_file, revision=revision)
-        self.tokenizer = Tokenizer.from_file(hf_hub_download(repo, "tokenizer.json", revision=revision))
-        self.tokenizer.enable_truncation(max_length=self.MAX_TOKENS)
-        self.tokenizer.enable_padding(pad_id=self.tokenizer.token_to_id("<pad>") or 1, pad_token="<pad>")
+        self.sp = spm.SentencePieceProcessor(
+            model_file=hf_hub_download(repo, "sentencepiece.bpe.model", revision=revision))
 
         options = ort.SessionOptions()
         options.intra_op_num_threads = 2
-        options.enable_cpu_mem_arena = False  # keeps resident memory low on small hosts
+        options.enable_cpu_mem_arena = False
+        options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_DISABLE_ALL
         self.session = ort.InferenceSession(model_path, options, providers=["CPUExecutionProvider"])
         self.input_names = {i.name for i in self.session.get_inputs()}
         self.dim = self.session.get_outputs()[0].shape[-1] or 384
 
+    def _token_ids(self, text: str) -> list[int]:
+        """XLM-R ids: <s> + SentencePiece pieces shifted by the fairseq offset + </s>."""
+        body = [p + 1 if p != 0 else self.UNK for p in self.sp.encode(text)]
+        return [self.BOS] + body[: self.MAX_TOKENS - 2] + [self.EOS]
+
     def encode(self, texts: list[str], batch_size: int = 16) -> np.ndarray:
         out = []
         for start in range(0, len(texts), batch_size):
-            batch = self.tokenizer.encode_batch(texts[start:start + batch_size])
-            ids = np.array([e.ids for e in batch], dtype="int64")
-            mask = np.array([e.attention_mask for e in batch], dtype="int64")
+            seqs = [self._token_ids(t) for t in texts[start:start + batch_size]]
+            width = max(len(seq) for seq in seqs)
+            ids = np.full((len(seqs), width), self.PAD, dtype="int64")
+            mask = np.zeros((len(seqs), width), dtype="int64")
+            for row, seq in enumerate(seqs):
+                ids[row, : len(seq)] = seq
+                mask[row, : len(seq)] = 1
             feeds = {"input_ids": ids, "attention_mask": mask}
             if "token_type_ids" in self.input_names:
                 feeds["token_type_ids"] = np.zeros_like(ids)

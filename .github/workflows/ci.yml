@@ -12,11 +12,11 @@ jobs:
       TRIAGE_DISABLE_LLM: "1"
       TRIAGE_EMBEDDINGS: hash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0 # full history for the secret scan
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: pip
@@ -25,7 +25,7 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "20"
           cache: npm
