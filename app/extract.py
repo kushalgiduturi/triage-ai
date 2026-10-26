@@ -182,8 +182,8 @@ SENTIMENT_RULES: list[tuple[str, re.Pattern]] = [
     ("polite", re.compile(r"kindly|respected|request|dear|thank|namaste|namaskaram|please", re.I)),
 ]
 LOCATION_RE = re.compile(
-    r"\b((?:block|hostel|gh|bh|lab|mess|gate|ward|sector|library|parking|canteen|building|workshop)"
-    r"[\s-]?[\w-]{0,12}(?:\s(?:hostel|road|block|lot|mess|market|colony))?)",
+    r"\b((?:block|hostel|gh|bh|lab|mess|gate|ward|sector|library|parking|canteen|building|workshop)\b"
+    r"(?:[\s-]?[a-z0-9]{1,3}\b)?(?:\s(?:hostel|road|block|lot|mess|market|colony)\b)?)",
     re.IGNORECASE,
 )
 
