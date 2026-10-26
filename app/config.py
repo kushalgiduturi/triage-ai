@@ -19,8 +19,15 @@ FRONTEND_DIST = Path(os.getenv("TRIAGE_FRONTEND_DIST", ROOT_DIR / "frontend" / "
 DB_PATH = Path(os.getenv("TRIAGE_DB_PATH", DATA_DIR / "triage.db"))
 FAISS_INDEX_PATH = Path(os.getenv("TRIAGE_FAISS_PATH", DATA_DIR / "faiss.index"))
 
+# LLM provider for extraction: "claude" (default) or "ollama" (open-source models run locally).
+PROVIDER = os.getenv("PROVIDER", "claude").lower()
+
 # Claude settings. The key is only ever read from the environment.
 ANTHROPIC_MODEL = os.getenv("TRIAGE_CLAUDE_MODEL", "claude-opus-5-5")
+
+# Ollama settings (PROVIDER=ollama). Any instruction-tuned model that supports JSON output works.
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.1:8b")
 LLM_ENABLED = os.getenv("TRIAGE_DISABLE_LLM", "0") != "1"
 
 # Embeddings backend:

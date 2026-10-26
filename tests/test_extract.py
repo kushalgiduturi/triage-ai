@@ -82,3 +82,29 @@ def test_fallback_fields(fallback_model):
     assert result.safety_risk is True
     assert result.sentiment == "worried"
     assert 0 <= result.confidence <= 1
+
+
+def test_ollama_provider_uses_schema_and_validates():
+    """PROVIDER=ollama: same masked prompt and JSON schema, answer validated like Claude's."""
+    import httpx
+
+    seen = {}
+
+    def handler(request):
+        body = json.loads(request.content)
+        seen.update(body)
+        return httpx.Response(200, json={"message": {"content": json.dumps(VALID)},
+                                         "prompt_eval_count": 900, "eval_count": 120})
+
+    llm = ex.OllamaExtractor(model="test-model", url="http://ollama.test")
+    llm.client = httpx.Client(base_url="http://ollama.test", transport=httpx.MockTransport(handler))
+    result = llm.extract("no water in [NAME]'s room in Block A", "Block A Boys Hostel")
+    assert result.sub_issue == "no_water_supply" and result.method == "llm"
+    assert seen["model"] == "test-model" and seen["format"]["properties"]["category"]["enum"]
+    assert "[NAME]" in seen["messages"][1]["content"]
+    assert llm.usage == [{"input_tokens": 900, "output_tokens": 120}]
+
+
+def test_provider_selection():
+    assert isinstance(ex.make_llm("ollama"), ex.OllamaExtractor)
+    assert ex.llm_available("ollama") in (True, False)

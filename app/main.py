@@ -23,10 +23,10 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.config import FRONTEND_DIST, ROOT_DIR, has_anthropic_key
+from app.config import FRONTEND_DIST, PROVIDER, ROOT_DIR
 from app.db import AuditLog, Complaint, Incident, make_session_factory
 from app.duplicates import DuplicateIndex
-from app.extract import Extractor
+from app.extract import Extractor, llm_available
 from app.language import detect_style
 from app.pipeline import TriagePipeline, urgency_sort_key
 from app.routing import route_for
@@ -187,7 +187,8 @@ def health(session: Session = Depends(get_session)) -> dict:
     return {
         "status": "ok",
         "complaints": session.scalar(select(func.count(Complaint.id))),
-        "llm_enabled": has_anthropic_key(),
+        "llm_enabled": llm_available(),
+        "provider": PROVIDER,
         "embeddings": state.pipeline.index.embedder.name,
         "edition": {"sentence-transformers": "full", "onnx": "lite"}.get(state.pipeline.index.embedder.name, "test"),
         "indexed": len(state.pipeline.index),
