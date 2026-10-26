@@ -32,7 +32,7 @@ short_description: AI complaint triage that recommends, humans decide
 |---|---|---|
 | 1. Mask PII | `app/pii.py` | Names, phones, emails and ID numbers are replaced with `[NAME]`, `[PHONE]`, … **before** any text reaches the LLM or the embedding model. |
 | 2. Extract | `app/extract.py` | Claude returns a strict JSON object (category, sub-issue, location, one-line summary, safety risk, people affected, sentiment, severity, confidence, reasoning). Enums come from the fixed taxonomy; Pydantic validates; one retry on invalid output; TF-IDF + logistic-regression fallback if the API is unavailable. |
-| 3. Find duplicates | `app/duplicates.py` | Multilingual sentence embeddings in a FAISS index; top-5 neighbours; >0.85 = likely duplicate, 0.65–0.85 = related; boosts for same category / location. Duplicates are grouped into an **incident**. |
+| 3. Find duplicates | `app/duplicates.py` | Multilingual sentence embeddings (paraphrase-multilingual-MiniLM-L12-v2 on ONNX Runtime) in a FAISS index; top-5 neighbours; >0.85 = likely duplicate, 0.65–0.85 = related; boosts for same category / location. Duplicates are grouped into an **incident**. |
 | 4. Score urgency | `app/urgency.py` | Hard safety rules force **Critical** (fire, injury, electric shock, harassment, assault, gas leak, ragging, food poisoning, no water 24h+). Otherwise an additive 0–100 score from LLM severity, people affected, number of reports in the incident, hours open and safety flags — with a plain-English reason. |
 | 5. Route | `app/routing.py` | `config/departments.yaml` maps (category, sub-issue) → department, SLA and standard next action. The LLM can only pick rows from this table. Confidence < 0.6 → **Needs manual triage** queue. |
 | 6. Review | `app/main.py`, `frontend/` | A reviewer approves, edits, rejects or merges. Every action is written to `audit_log` with timestamp, reviewer, old value and new value. **Nothing is ever dispatched automatically.** |
@@ -109,14 +109,14 @@ docker build -t triage-ai . && docker run -p 7860:7860 -e ANTHROPIC_API_KEY=... 
 
 ## Evaluation
 
-Offline run (no API key): extraction uses the TF-IDF fallback with 5-fold GroupKFold, so every complaint is scored by a model that never saw it or any report of the same incident. Embeddings use the real multilingual MiniLM model. n = 400.
+Offline run (no API key): extraction uses the TF-IDF fallback with 5-fold GroupKFold, so every complaint is scored by a model that never saw it or any report of the same incident. Embeddings use the multilingual MiniLM model on ONNX Runtime (8-bit quantized). n = 400.
 
 | Metric | Result |
 |---|---|
 | Category accuracy | **90.0%** |
 | Sub-issue accuracy | 87.5% |
-| Urgency macro-F1 | **0.898** (accuracy 89.2%; per class: Low 0.88, Medium 0.89, High 0.86, Critical 0.96) |
-| Duplicate precision / recall (pairs) | **0.896 / 0.751** (F1 0.818; 22 of 25 planted clusters recovered) |
+| Urgency macro-F1 | **0.896** (accuracy 89.0%; per class: Low 0.88, Medium 0.89, High 0.85, Critical 0.96) |
+| Duplicate precision / recall (pairs) | **0.903 / 0.751** (F1 0.820; 22 of 25 planted clusters recovered) |
 | Routing accuracy (recommended department) | **90.0%** (100.0% on the 70% that were confident enough to auto-route) |
 | Manual triage rate (confidence < 0.6) | 30% |
 | Bias check: urgency identical across rewrites | **80%** of 20 complaints × 8 versions (original, English, Hinglish, Telugu-English, formal, angry, polite, casual) |
@@ -155,6 +155,7 @@ Choices made where the brief was open (all easy to change):
 - **Duplicate guard.** Besides the brief's thresholds and boosts, two complaints that name *different* known locations, or were filed more than 7 days apart, can be "related" at most — "no water in Block A" and "no water in Block C" read almost identically but are different incidents.
 - **Incident urgency.** All reports in an incident share the highest urgency among them; the number of reports adds +4 (2 reports), +8 (3–4) or +20 (5+) points. Without a safety-rule hit or a severity-5 extraction, the score is capped below Critical, so many reports of a broken streetlight can reach High but not Critical.
 - **Merge status.** `merge` adds a fifth status, `merged`, so merged reports leave the pending queue while staying linked to their incident.
+- **Embeddings without torch.** The brief named sentence-transformers. The app runs the same paraphrase-multilingual-MiniLM-L12-v2 model through ONNX Runtime instead, using the 8-bit quantized export (`onnx/model_quint8_avx2.onnx`, 118 MB) published in the model's own repository and pinned to a revision. That removes torch, cuts memory enough to run on a free 512 MB host, and shrinks the Docker image. sentence-transformers is still available as an optional backend (`TRIAGE_EMBEDDINGS=sentence-transformers`). On the 400 synthetic complaints the ONNX vectors match sentence-transformers at 0.993 mean cosine (minimum 0.953), pairwise similarities correlate at 0.993, encoding is about 2× faster, and every evaluation metric stays within 0.01 of the sentence-transformers run.
 - **Model.** Claude calls use `claude-opus-5-5` (override with `TRIAGE_CLAUDE_MODEL`) at low effort with structured outputs, and opt into the API's server-side refusal fallback.
 - **One port.** FastAPI serves the React build from `/` and the API from its own paths on 7860 (`$PORT`). The UI uses hash routes (`#/complaints/12`) so a page refresh never collides with the JSON route `/complaints/12`.
 - **Colour contrast.** The design palette is white and sky blue, with red only for Critical. White text on `#0EA5E9` is 2.8:1 and on `#0284C7` 4.1:1, both below WCAG AA for 14px text, so buttons and sky-blue text use darker sky shades (`#0369A1`, hover `#075985`, 5.9:1 and 7.6:1). `#0EA5E9` is used for non-text accents: the active-page marker, chart bars and the focus ring. Urgency labels go from `#0369A1` (Low) to `#0C4A6E` (High), getting darker and heavier; Critical is `#DC2626` (4.8:1).
@@ -162,8 +163,8 @@ Choices made where the brief was open (all easy to change):
 
 ## Deployment
 
-- **Hugging Face Space (primary):** Docker SDK; the front matter at the top of this file sets `sdk: docker` and `app_port: 7860`. Add `ANTHROPIC_API_KEY` under *Space Settings → Variables and secrets → New secret*. The image pre-downloads the embedding model and builds the seeded database at build time.
-- **Render (fallback):** `render.yaml` is a Blueprint for the same Dockerfile (needs the Starter plan for RAM). Set `ANTHROPIC_API_KEY` in the dashboard.
+- **Render (live demo, free plan):** `render.yaml` is a Blueprint for the Dockerfile. In the Render dashboard choose *New → Blueprint*, pick this repository, and set `ANTHROPIC_API_KEY` when asked (it is declared with `sync: false`, so it never lives in git). The image pre-downloads the ONNX model and builds the seeded database at build time. Free-plan limits: the service sleeps after 15 minutes without traffic, so the first request takes about a minute; and the disk is not persistent, so reviewer actions reset to the seeded state whenever the service restarts or redeploys.
+- **Hugging Face Space:** the front matter at the top of this file (`sdk: docker`, `app_port: 7860`) makes the repository deployable as a Docker Space as-is. Hugging Face now requires a PRO subscription to host Docker Spaces on free CPU, so it is not the live target. On a PRO account, create a Docker Space, upload the repository, and add `ANTHROPIC_API_KEY` under *Settings → Variables and secrets*.
 - **CI:** `.github/workflows/ci.yml` runs the unit tests, the evaluation smoke test and a secret scan on every push.
 
 ## Project structure

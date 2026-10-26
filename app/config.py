@@ -23,9 +23,13 @@ FAISS_INDEX_PATH = Path(os.getenv("TRIAGE_FAISS_PATH", DATA_DIR / "faiss.index")
 ANTHROPIC_MODEL = os.getenv("TRIAGE_CLAUDE_MODEL", "claude-opus-5-5")
 LLM_ENABLED = os.getenv("TRIAGE_DISABLE_LLM", "0") != "1"
 
-# Embeddings. "hash" is a dependency-light fallback used by unit tests / CI.
+# Embeddings: "onnx" (default, no torch), "sentence-transformers" (optional extra),
+# or "hash" (dependency-light fallback for unit tests / CI).
 EMBEDDING_MODEL = os.getenv("TRIAGE_EMBEDDING_MODEL", "paraphrase-multilingual-MiniLM-L12-v2")
-EMBEDDING_BACKEND = os.getenv("TRIAGE_EMBEDDINGS", "sentence-transformers")  # or "hash"
+EMBEDDING_BACKEND = os.getenv("TRIAGE_EMBEDDINGS", "onnx")
+# 8-bit quantized export from the model's own repo, pinned to a revision for reproducibility.
+EMBEDDING_ONNX_FILE = os.getenv("TRIAGE_EMBEDDING_ONNX_FILE", "onnx/model_quint8_avx2.onnx")
+EMBEDDING_REVISION = os.getenv("TRIAGE_EMBEDDING_REVISION", "e8f8c211226b894fcb81acc59f3b34ba3efd5f42")
 
 
 def has_anthropic_key() -> bool:

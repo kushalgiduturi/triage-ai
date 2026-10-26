@@ -1,8 +1,11 @@
 """Duplicate / related complaint detection with sentence embeddings + FAISS.
 
 Each complaint is embedded with paraphrase-multilingual-MiniLM-L12-v2 and stored
-in a FAISS inner-product index (vectors are L2-normalised, so inner product =
-cosine similarity). The vector is the sum of two embeddings:
+in a FAISS inner-product index. The model runs through ONNX Runtime using the
+8-bit quantized export published in the model's own repository, so the app needs
+no torch and fits a 512 MB host (sentence-transformers is still supported as an
+optional backend; the vectors agree to ~0.99 cosine). Vectors are stored L2-normalised, so inner product = cosine similarity.
+The vector is the sum of two embeddings:
 
     embed(masked complaint text) + embed("<category>: <sub issue>")
 
@@ -38,7 +41,9 @@ from pathlib import Path
 import faiss
 import numpy as np
 
-from app.config import EMBEDDING_BACKEND, EMBEDDING_MODEL, FAISS_INDEX_PATH
+from app.config import (
+    EMBEDDING_BACKEND, EMBEDDING_MODEL, EMBEDDING_ONNX_FILE, EMBEDDING_REVISION, FAISS_INDEX_PATH,
+)
 
 DUPLICATE_THRESHOLD = 0.85
 RELATED_THRESHOLD = 0.65
@@ -58,7 +63,53 @@ class Embedder:
         raise NotImplementedError
 
 
+class OnnxEmbedder(Embedder):
+    """paraphrase-multilingual-MiniLM-L12-v2 on ONNX Runtime (no torch).
+
+    Reproduces the sentence-transformers pipeline: tokenize (max 128 tokens),
+    run the transformer, mean-pool over the attention mask, L2-normalise.
+    """
+
+    MAX_TOKENS = 128  # the model's max_seq_length in sentence-transformers
+
+    def __init__(self, model_name: str = EMBEDDING_MODEL, onnx_file: str = EMBEDDING_ONNX_FILE,
+                 revision: str = EMBEDDING_REVISION) -> None:
+        import onnxruntime as ort
+        from huggingface_hub import hf_hub_download
+        from tokenizers import Tokenizer
+
+        repo = model_name if "/" in model_name else f"sentence-transformers/{model_name}"
+        model_path = hf_hub_download(repo, onnx_file, revision=revision)
+        self.tokenizer = Tokenizer.from_file(hf_hub_download(repo, "tokenizer.json", revision=revision))
+        self.tokenizer.enable_truncation(max_length=self.MAX_TOKENS)
+        self.tokenizer.enable_padding(pad_id=self.tokenizer.token_to_id("<pad>") or 1, pad_token="<pad>")
+
+        options = ort.SessionOptions()
+        options.intra_op_num_threads = 2
+        options.enable_cpu_mem_arena = False  # keeps resident memory low on small hosts
+        self.session = ort.InferenceSession(model_path, options, providers=["CPUExecutionProvider"])
+        self.input_names = {i.name for i in self.session.get_inputs()}
+        self.dim = self.session.get_outputs()[0].shape[-1] or 384
+
+    def encode(self, texts: list[str], batch_size: int = 16) -> np.ndarray:
+        out = []
+        for start in range(0, len(texts), batch_size):
+            batch = self.tokenizer.encode_batch(texts[start:start + batch_size])
+            ids = np.array([e.ids for e in batch], dtype="int64")
+            mask = np.array([e.attention_mask for e in batch], dtype="int64")
+            feeds = {"input_ids": ids, "attention_mask": mask}
+            if "token_type_ids" in self.input_names:
+                feeds["token_type_ids"] = np.zeros_like(ids)
+            hidden = self.session.run(None, feeds)[0]  # (batch, tokens, dim)
+            weights = mask[..., None].astype("float32")
+            pooled = (hidden * weights).sum(axis=1) / np.clip(weights.sum(axis=1), 1e-9, None)
+            out.append(pooled / np.clip(np.linalg.norm(pooled, axis=1, keepdims=True), 1e-12, None))
+        return np.vstack(out).astype("float32") if out else np.zeros((0, self.dim), dtype="float32")
+
+
 class SentenceTransformerEmbedder(Embedder):
+    """Optional backend (needs `pip install sentence-transformers`, which pulls in torch)."""
+
     def __init__(self, model_name: str = EMBEDDING_MODEL) -> None:
         from sentence_transformers import SentenceTransformer
 
@@ -93,7 +144,9 @@ def get_embedder() -> Embedder:
     global _embedder
     with _embedder_lock:
         if _embedder is None:
-            _embedder = HashEmbedder() if EMBEDDING_BACKEND == "hash" else SentenceTransformerEmbedder()
+            backends = {"onnx": OnnxEmbedder, "hash": HashEmbedder,
+                        "sentence-transformers": SentenceTransformerEmbedder}
+            _embedder = backends[EMBEDDING_BACKEND]()
         return _embedder
 
 

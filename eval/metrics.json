@@ -1,28 +1,28 @@
 {
-  "generated_at": "2026-10-26T11:43:18",
+  "generated_at": "2026-10-26T12:46:14",
   "mode": "offline fallback (5-fold GroupKFold)",
   "model": "tfidf+logreg",
-  "embeddings": "sentence-transformers",
+  "embeddings": "onnx",
   "n": 400,
   "category_accuracy": 0.9,
   "sub_issue_accuracy": 0.875,
-  "urgency_accuracy": 0.8925,
-  "urgency_macro_f1": 0.8982,
+  "urgency_accuracy": 0.89,
+  "urgency_macro_f1": 0.8963,
   "urgency_per_class_f1": {
     "Low": 0.8817,
-    "Medium": 0.8896,
-    "High": 0.8571,
+    "Medium": 0.8869,
+    "High": 0.8522,
     "Critical": 0.9645
   },
   "routing_accuracy": 0.9,
   "manual_triage_rate": 0.2975,
   "routing_accuracy_when_auto_routed": 1.0,
   "duplicates": {
-    "precision": 0.8964,
+    "precision": 0.9029,
     "recall": 0.7515,
-    "f1": 0.8176,
+    "f1": 0.8203,
     "true_pairs": 334,
-    "predicted_pairs": 280,
+    "predicted_pairs": 278,
     "clusters_recovered": 22,
     "clusters_total": 25
   },
@@ -98,5 +98,5 @@
       }
     ]
   },
-  "runtime_seconds": 104.1
+  "runtime_seconds": 36.0
 }

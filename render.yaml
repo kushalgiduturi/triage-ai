@@ -5,8 +5,8 @@ services:
     name: triage-ai
     runtime: docker
     dockerfilePath: ./Dockerfile
-    # torch + the embedding model need ~1 GB RAM; the free plan (512 MB) is too small.
-    plan: starter
+    # Embeddings run on ONNX Runtime (no torch), so the app fits the free 512 MB instance.
+    plan: free
     healthCheckPath: /health
     envVars:
       - key: PORT

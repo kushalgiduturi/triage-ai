@@ -23,13 +23,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN useradd -m -u 1000 user
 WORKDIR /app
 
-# CPU-only torch keeps the image small; then the rest of the dependencies.
+# No torch: embeddings run on ONNX Runtime, so the image and memory footprint stay small.
 COPY requirements.txt .
-RUN pip install --index-url https://download.pytorch.org/whl/cpu torch \
- && pip install -r requirements.txt
+RUN pip install -r requirements.txt
 
-# Pre-download the embedding model so container start-up is fast.
-RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')"
+# Pre-download the quantized ONNX embedding model so container start-up is fast.
+COPY app/__init__.py app/config.py app/duplicates.py ./app/
+RUN python -c "from app.duplicates import OnnxEmbedder; OnnxEmbedder()"
 
 COPY . .
 COPY --from=frontend /frontend/dist ./frontend/dist
