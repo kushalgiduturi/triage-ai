@@ -1,0 +1,1198 @@
+{
+  "presidio_analyzer_version": "2.2.365",
+  "spacy_version": "3.8.16",
+  "nlp_model": "en_core_web_lg (default)",
+  "sets": {
+    "tuning": {
+      "n_complaints": 120,
+      "by_type": {
+        "EMAIL": {
+          "planted": 36,
+          "leaked": 0
+        },
+        "ID": {
+          "planted": 99,
+          "leaked": 99
+        },
+        "NAME": {
+          "planted": 209,
+          "leaked": 51
+        },
+        "PHONE": {
+          "planted": 109,
+          "leaked": 0
+        }
+      },
+      "leaked_total": 150,
+      "planted_total": 453,
+      "phone_formats": {
+        "+dd ddddd ddddd": {
+          "planted": 17,
+          "missed": 0
+        },
+        "+dd-ddddd-ddddd": {
+          "planted": 20,
+          "missed": 0
+        },
+        "+dddddddddddd": {
+          "planted": 11,
+          "missed": 0
+        },
+        "ddd ddd dddd": {
+          "planted": 15,
+          "missed": 0
+        },
+        "ddddd-ddddd": {
+          "planted": 20,
+          "missed": 0
+        },
+        "dddddd ddddd": {
+          "planted": 7,
+          "missed": 0
+        },
+        "dddddddddd": {
+          "planted": 19,
+          "missed": 0
+        }
+      },
+      "location_codes_flagged": 35,
+      "location_flag_examples": [
+        {
+          "id": "P002",
+          "place": "GH-1",
+          "detected_as": [
+            "LOCATION"
+          ]
+        },
+        {
+          "id": "P003",
+          "place": "Girls Hostel 2",
+          "detected_as": [
+            "LOCATION"
+          ]
+        },
+        {
+          "id": "P003",
+          "place": "Girls Hostel 2",
+          "detected_as": [
+            "LOCATION"
+          ]
+        },
+        {
+          "id": "P004",
+          "place": "GH-2",
+          "detected_as": [
+            "PERSON"
+          ]
+        },
+        {
+          "id": "P005",
+          "place": "GH-1",
+          "detected_as": [
+            "LOCATION"
+          ]
+        },
+        {
+          "id": "P010",
+          "place": "Girls Hostel 2",
+          "detected_as": [
+            "PERSON"
+          ]
+        },
+        {
+          "id": "P011",
+          "place": "GH-2",
+          "detected_as": [
+            "PERSON"
+          ]
+        },
+        {
+          "id": "P018",
+          "place": "GH-1",
+          "detected_as": [
+            "LOCATION"
+          ]
+        },
+        {
+          "id": "P020",
+          "place": "GH-1",
+          "detected_as": [
+            "LOCATION"
+          ]
+        },
+        {
+          "id": "P022",
+          "place": "Girls Hostel 2",
+          "detected_as": [
+            "PERSON"
+          ]
+        }
+      ],
+      "entity_types_returned": {
+        "PERSON": 230,
+        "PHONE_NUMBER": 145,
+        "DATE_TIME": 64,
+        "URL": 58,
+        "LOCATION": 57,
+        "US_DRIVER_LICENSE": 46,
+        "US_BANK_NUMBER": 36,
+        "EMAIL_ADDRESS": 36,
+        "NRP": 2,
+        "UK_NHS": 1
+      },
+      "misses_sample": [
+        {
+          "id": "P001",
+          "type": "NAME",
+          "value": "Yashwanth",
+          "text": "BH-A mein kal raat se light nahi hai. pls call yashwanth bhaiya 7181960013 Yashwanth Goud bol raha hoon, BH-A se. Call karo 7181960013.",
+          "presidio": [
+            [
+              "mein kal",
+              "PERSON"
+            ],
+            [
+              "raat se",
+              "PERSON"
+            ],
+            [
+              "light nahi hai",
+              "PERSON"
+            ],
+            [
+              "raha hoon",
+              "PERSON"
+            ],
+            [
+              "7181960013",
+              "PHONE_NUMBER"
+            ],
+            [
+              "7181960013",
+              "PHONE_NUMBER"
+            ],
+            [
+              "7181960013",
+              "US_BANK_NUMBER"
+            ],
+            [
+              "7181960013",
+              "US_BANK_NUMBER"
+            ],
+            [
+              "7181960013",
+              "US_DRIVER_LICENSE"
+            ],
+            [
+              "7181960013",
+              "US_DRIVER_LICENSE"
+            ]
+          ]
+        },
+        {
+          "id": "P001",
+          "type": "NAME",
+          "value": "Goud",
+          "text": "BH-A mein kal raat se light nahi hai. pls call yashwanth bhaiya 7181960013 Yashwanth Goud bol raha hoon, BH-A se. Call karo 7181960013.",
+          "presidio": [
+            [
+              "mein kal",
+              "PERSON"
+            ],
+            [
+              "raat se",
+              "PERSON"
+            ],
+            [
+              "light nahi hai",
+              "PERSON"
+            ],
+            [
+              "raha hoon",
+              "PERSON"
+            ],
+            [
+              "7181960013",
+              "PHONE_NUMBER"
+            ],
+            [
+              "7181960013",
+              "PHONE_NUMBER"
+            ],
+            [
+              "7181960013",
+              "US_BANK_NUMBER"
+            ],
+            [
+              "7181960013",
+              "US_BANK_NUMBER"
+            ],
+            [
+              "7181960013",
+              "US_DRIVER_LICENSE"
+            ],
+            [
+              "7181960013",
+              "US_DRIVER_LICENSE"
+            ]
+          ]
+        },
+        {
+          "id": "P002",
+          "type": "NAME",
+          "value": "Abhishek",
+          "text": "GH-1 lo washrooms chala dirty ga unnayi. Abhishek garu ki cheppandi, 61615-59407. Naa peru Abhishek Pillai, phone 61615-59407.",
+          "presidio": [
+            [
+              "GH-1 lo",
+              "LOCATION"
+            ],
+            [
+              "chala dirty ga",
+              "PERSON"
+            ],
+            [
+              "garu ki",
+              "PERSON"
+            ],
+            [
+              "Abhishek Pillai",
+              "PERSON"
+            ],
+            [
+              "61615-59407",
+              "DATE_TIME"
+            ],
+            [
+              "61615-59407",
+              "PHONE_NUMBER"
+            ],
+            [
+              "61615-59407",
+              "PHONE_NUMBER"
+            ]
+          ]
+        },
+        {
+          "id": "P003",
+          "type": "ID",
+          "value": "23B58A5422",
+          "text": "Power cut in Girls Hostel 2 since last night. Fatima Banerjee here from Girls Hostel 2, ph 7553419283 Regards, Fatima Banerjee, Roll No: 23B58A5422",
+          "presidio": [
+            [
+              "Girls Hostel 2",
+              "LOCATION"
+            ],
+            [
+              "last night",
+              "DATE_TIME"
+            ],
+            [
+              "Fatima Banerjee",
+              "PERSON"
+            ],
+            [
+              "Girls Hostel 2",
+              "LOCATION"
+            ],
+            [
+              "Fatima Banerjee",
+              "PERSON"
+            ],
+            [
+              "7553419283",
+              "PHONE_NUMBER"
+            ],
+            [
+              "7553419283",
+              "US_BANK_NUMBER"
+            ],
+            [
+              "7553419283",
+              "US_DRIVER_LICENSE"
+            ]
+          ]
+        },
+        {
+          "id": "P005",
+          "type": "ID",
+          "value": "20400A62H0",
+          "text": "GH-1 daggara street lights work avvatledu. Naa peru Akhila Khan, phone +919697848018. Roll number 20400A62H0. Aadhaar 8241 3927 9317 kuda ichanu.",
+          "presidio": [
+            [
+              "GH-1",
+              "LOCATION"
+            ],
+            [
+              "Akhila Khan",
+              "PERSON"
+            ],
+            [
+              "+919697848018",
+              "PHONE_NUMBER"
+            ],
+            [
+              "919697848018",
+              "US_BANK_NUMBER"
+            ],
+            [
+              "919697848018",
+              "US_DRIVER_LICENSE"
+            ]
+          ]
+        },
+        {
+          "id": "P005",
+          "type": "ID",
+          "value": "8241 3927 9317",
+          "text": "GH-1 daggara street lights work avvatledu. Naa peru Akhila Khan, phone +919697848018. Roll number 20400A62H0. Aadhaar 8241 3927 9317 kuda ichanu.",
+          "presidio": [
+            [
+              "GH-1",
+              "LOCATION"
+            ],
+            [
+              "Akhila Khan",
+              "PERSON"
+            ],
+            [
+              "+919697848018",
+              "PHONE_NUMBER"
+            ],
+            [
+              "919697848018",
+              "US_BANK_NUMBER"
+            ],
+            [
+              "919697848018",
+              "US_DRIVER_LICENSE"
+            ]
+          ]
+        },
+        {
+          "id": "P006",
+          "type": "NAME",
+          "value": "Bhavana",
+          "text": "CSE block lo WiFi poorthiga down lo undi. - Bhavana (22B40A1949) Roll number 22B40A1949. Aadhaar 6363 3060 3103 kuda ichanu.",
+          "presidio": [
+            [
+              "lo undi",
+              "PERSON"
+            ]
+          ]
+        },
+        {
+          "id": "P006",
+          "type": "ID",
+          "value": "22B40A1949",
+          "text": "CSE block lo WiFi poorthiga down lo undi. - Bhavana (22B40A1949) Roll number 22B40A1949. Aadhaar 6363 3060 3103 kuda ichanu.",
+          "presidio": [
+            [
+              "lo undi",
+              "PERSON"
+            ]
+          ]
+        },
+        {
+          "id": "P006",
+          "type": "ID",
+          "value": "6363 3060 3103",
+          "text": "CSE block lo WiFi poorthiga down lo undi. - Bhavana (22B40A1949) Roll number 22B40A1949. Aadhaar 6363 3060 3103 kuda ichanu.",
+          "presidio": [
+            [
+              "lo undi",
+              "PERSON"
+            ]
+          ]
+        },
+        {
+          "id": "P007",
+          "type": "ID",
+          "value": "21B18A6539",
+          "text": "GH-1 mein kal raat se light nahi hai. Mera naam Gurpreet Thomas hai, number 7834657871. Roll no 21B18A6539, mail gurpreet.thomas91@gmail.com",
+          "presidio": [
+            [
+              "gurpreet.thomas91@gmail.com",
+              "EMAIL_ADDRESS"
+            ],
+            [
+              "raat se",
+              "PERSON"
+            ],
+            [
+              "light nahi hai",
+              "PERSON"
+            ],
+            [
+              "Mera naam Gurpreet",
+              "PERSON"
+            ],
+            [
+              "Thomas hai",
+              "PERSON"
+            ],
+            [
+              "7834657871",
+              "PHONE_NUMBER"
+            ],
+            [
+              "gurpreet.th",
+              "URL"
+            ],
+            [
+              "gmail.com",
+              "URL"
+            ],
+            [
+              "7834657871",
+              "US_BANK_NUMBER"
+            ],
+            [
+              "7834657871",
+              "US_DRIVER_LICENSE"
+            ]
+          ]
+        },
+        {
+          "id": "P008",
+          "type": "ID",
+          "value": "20774A65G6",
+          "text": "A-block lo morning nunchi water raavatledu. - Gurpreet (20774A65G6) Roll number 20774A65G6. Aadhaar 2443 2612 1993 kuda ichanu.",
+          "presidio": [
+            [
+              "nunchi water raavatledu",
+              "LOCATION"
+            ],
+            [
+              "Gurpreet",
+              "PERSON"
+            ],
+            [
+              "1993",
+              "DATE_TIME"
+            ]
+          ]
+        },
+        {
+          "id": "P008",
+          "type": "ID",
+          "value": "2443 2612 1993",
+          "text": "A-block lo morning nunchi water raavatledu. - Gurpreet (20774A65G6) Roll number 20774A65G6. Aadhaar 2443 2612 1993 kuda ichanu.",
+          "presidio": [
+            [
+              "nunchi water raavatledu",
+              "LOCATION"
+            ],
+            [
+              "Gurpreet",
+              "PERSON"
+            ],
+            [
+              "1993",
+              "DATE_TIME"
+            ]
+          ]
+        },
+        {
+          "id": "P009",
+          "type": "ID",
+          "value": "25653A01D2",
+          "text": "No water in A-block since morning. Regards, Yashwanth Mishra, Roll No: 25653A01D2 Contact warden Mr. Mishra or me on +91-78726-24731.",
+          "presidio": [
+            [
+              "Yashwanth Mishra",
+              "PERSON"
+            ],
+            [
+              "Mishra",
+              "PERSON"
+            ],
+            [
+              "+91-78726-24731",
+              "PHONE_NUMBER"
+            ]
+          ]
+        },
+        {
+          "id": "P011",
+          "type": "NAME",
+          "value": "Gowtham",
+          "text": "GH-2 ke paas street light band hai, andhera rehta hai. Gowtham Goud bol raha hoon, GH-2 se. Call karo 691 699 8543. pls call gowtham bhaiya 691 699 8543",
+          "presidio": [
+            [
+              "paas street",
+              "LOCATION"
+            ],
+            [
+              "hai",
+              "LOCATION"
+            ],
+            [
+              "andhera rehta hai",
+              "LOCATION"
+            ],
+            [
+              "Gowtham Goud bol raha hoon",
+              "PERSON"
+            ],
+            [
+              "GH-2 se",
+              "PERSON"
+            ],
+            [
+              "691 699 8543",
+              "PHONE_NUMBER"
+            ],
+            [
+              "691 699 8543",
+              "PHONE_NUMBER"
+            ]
+          ]
+        },
+        {
+          "id": "P013",
+          "type": "NAME",
+          "value": "Mounika",
+          "text": "PG hostel mein kal raat se light nahi hai. pls call mounika bhaiya 66400-52427 Mera naam Mounika Yadav hai, number 66400-52427.",
+          "presidio": [
+            [
+              "raat se",
+              "PERSON"
+            ],
+            [
+              "light nahi hai",
+              "PERSON"
+            ],
+            [
+              "66400-52427",
+              "DATE_TIME"
+            ],
+            [
+              "Mera naam Mounika Yadav hai",
+              "PERSON"
+            ],
+            [
+              "66400-52427",
+              "DATE_TIME"
+            ],
+            [
+              "66400-52427",
+              "PHONE_NUMBER"
+            ],
+            [
+              "66400-52427",
+              "PHONE_NUMBER"
+            ]
+          ]
+        }
+      ]
+    },
+    "heldout": {
+      "n_complaints": 120,
+      "by_type": {
+        "EMAIL": {
+          "planted": 56,
+          "leaked": 0
+        },
+        "ID": {
+          "planted": 54,
+          "leaked": 53
+        },
+        "NAME": {
+          "planted": 240,
+          "leaked": 30
+        },
+        "PHONE": {
+          "planted": 94,
+          "leaked": 0
+        }
+      },
+      "leaked_total": 83,
+      "planted_total": 444,
+      "phone_formats": {
+        "+dd ddddd ddddd": {
+          "planted": 15,
+          "missed": 0
+        },
+        "+dd-ddddd-ddddd": {
+          "planted": 15,
+          "missed": 0
+        },
+        "+dddddddddddd": {
+          "planted": 13,
+          "missed": 0
+        },
+        "ddd ddd dddd": {
+          "planted": 14,
+          "missed": 0
+        },
+        "ddddd-ddddd": {
+          "planted": 15,
+          "missed": 0
+        },
+        "dddddd ddddd": {
+          "planted": 12,
+          "missed": 0
+        },
+        "dddddddddd": {
+          "planted": 10,
+          "missed": 0
+        }
+      },
+      "location_codes_flagged": 30,
+      "location_flag_examples": [
+        {
+          "id": "H002",
+          "place": "GH-1",
+          "detected_as": [
+            "LOCATION"
+          ]
+        },
+        {
+          "id": "H003",
+          "place": "GH-1",
+          "detected_as": [
+            "LOCATION"
+          ]
+        },
+        {
+          "id": "H005",
+          "place": "Girls Hostel 2",
+          "detected_as": [
+            "LOCATION"
+          ]
+        },
+        {
+          "id": "H008",
+          "place": "PG hostel",
+          "detected_as": [
+            "LOCATION"
+          ]
+        },
+        {
+          "id": "H012",
+          "place": "BH-C",
+          "detected_as": [
+            "LOCATION"
+          ]
+        },
+        {
+          "id": "H024",
+          "place": "Gate 2",
+          "detected_as": [
+            "LOCATION"
+          ]
+        },
+        {
+          "id": "H027",
+          "place": "GH-1",
+          "detected_as": [
+            "LOCATION"
+          ]
+        },
+        {
+          "id": "H030",
+          "place": "BH-A",
+          "detected_as": [
+            "LOCATION"
+          ]
+        },
+        {
+          "id": "H031",
+          "place": "PG hostel",
+          "detected_as": [
+            "LOCATION"
+          ]
+        },
+        {
+          "id": "H045",
+          "place": "Girls Hostel 2",
+          "detected_as": [
+            "LOCATION"
+          ]
+        }
+      ],
+      "entity_types_returned": {
+        "PERSON": 361,
+        "PHONE_NUMBER": 109,
+        "LOCATION": 63,
+        "EMAIL_ADDRESS": 56,
+        "URL": 56,
+        "US_DRIVER_LICENSE": 40,
+        "DATE_TIME": 37,
+        "US_BANK_NUMBER": 26,
+        "UK_NHS": 1
+      },
+      "misses_sample": [
+        {
+          "id": "H001",
+          "type": "NAME",
+          "value": "Ishita",
+          "text": "Block C ke washroom bahut gande hain. Shikayat karta: Ishita Qureshi (roll 24B65A7454) ishita ko bolo mujhe 67979-08695 pe call kare",
+          "presidio": [
+            [
+              "Shikayat karta",
+              "PERSON"
+            ],
+            [
+              "Ishita Qureshi",
+              "PERSON"
+            ],
+            [
+              "ko bolo mujhe 67979-08695",
+              "PERSON"
+            ],
+            [
+              "kare",
+              "PERSON"
+            ],
+            [
+              "67979-08695",
+              "PHONE_NUMBER"
+            ]
+          ]
+        },
+        {
+          "id": "H001",
+          "type": "ID",
+          "value": "24B65A7454",
+          "text": "Block C ke washroom bahut gande hain. Shikayat karta: Ishita Qureshi (roll 24B65A7454) ishita ko bolo mujhe 67979-08695 pe call kare",
+          "presidio": [
+            [
+              "Shikayat karta",
+              "PERSON"
+            ],
+            [
+              "Ishita Qureshi",
+              "PERSON"
+            ],
+            [
+              "ko bolo mujhe 67979-08695",
+              "PERSON"
+            ],
+            [
+              "kare",
+              "PERSON"
+            ],
+            [
+              "67979-08695",
+              "PHONE_NUMBER"
+            ]
+          ]
+        },
+        {
+          "id": "H004",
+          "type": "ID",
+          "value": "22B25A9721",
+          "text": "Gate 2 mein kal raat se light nahi hai. Shikayat karta: Rajesh Prasad (roll 22B25A9721) Main Rajesh Prasad, Gate 2 mein rehta hoon. Mobile +919790201120.",
+          "presidio": [
+            [
+              "mein kal",
+              "PERSON"
+            ],
+            [
+              "raat se",
+              "PERSON"
+            ],
+            [
+              "light nahi hai",
+              "PERSON"
+            ],
+            [
+              "Shikayat karta",
+              "PERSON"
+            ],
+            [
+              "Rajesh Prasad",
+              "PERSON"
+            ],
+            [
+              "Rajesh Prasad",
+              "PERSON"
+            ],
+            [
+              "mein rehta hoon",
+              "PERSON"
+            ],
+            [
+              "+919790201120",
+              "PHONE_NUMBER"
+            ],
+            [
+              "919790201120",
+              "US_BANK_NUMBER"
+            ],
+            [
+              "919790201120",
+              "US_DRIVER_LICENSE"
+            ]
+          ]
+        },
+        {
+          "id": "H005",
+          "type": "ID",
+          "value": "21B48A4636",
+          "text": "Girls Hostel 2 lo washrooms chala dirty ga unnayi. Complaint by Kalyani Menon, hall ticket 21B48A4636 Nenu Kalyani Menon, Girls Hostel 2 lo untanu. Number 956 502 8230.",
+          "presidio": [
+            [
+              "Kalyani Menon",
+              "PERSON"
+            ],
+            [
+              "Nenu Kalyani Menon",
+              "PERSON"
+            ],
+            [
+              "Girls Hostel",
+              "LOCATION"
+            ],
+            [
+              "956 502 8230",
+              "PHONE_NUMBER"
+            ]
+          ]
+        },
+        {
+          "id": "H006",
+          "type": "ID",
+          "value": "20679A96D6",
+          "text": "BH-A mein subah se paani nahi aa raha hai. Main Vivek Bose, BH-A mein rehta hoon. Mobile +91 69543 27623. Shikayat karta: Vivek Bose (roll 20679A96D6)",
+          "presidio": [
+            [
+              "se paani nahi",
+              "PERSON"
+            ],
+            [
+              "raha hai",
+              "PERSON"
+            ],
+            [
+              "Main Vivek Bose",
+              "PERSON"
+            ],
+            [
+              "69543 27623",
+              "DATE_TIME"
+            ],
+            [
+              "Shikayat karta",
+              "PERSON"
+            ],
+            [
+              "Vivek Bose",
+              "PERSON"
+            ],
+            [
+              "+91 69543 27623",
+              "PHONE_NUMBER"
+            ]
+          ]
+        },
+        {
+          "id": "H007",
+          "type": "ID",
+          "value": "25913A17F2",
+          "text": "Girls Hostel 2 mein subah se paani nahi aa raha hai. Main Snigdha Qureshi, Girls Hostel 2 mein rehta hoon. Mobile +91 88289 23330. Shikayat karta: Snigdha Qureshi (roll 25913A17F2)",
+          "presidio": [
+            [
+              "mein subah se paani nahi",
+              "PERSON"
+            ],
+            [
+              "raha hai",
+              "PERSON"
+            ],
+            [
+              "Snigdha Qureshi",
+              "PERSON"
+            ],
+            [
+              "mein rehta hoon",
+              "PERSON"
+            ],
+            [
+              "Shikayat karta",
+              "PERSON"
+            ],
+            [
+              "Snigdha Qureshi",
+              "PERSON"
+            ],
+            [
+              "+91 88289 23330",
+              "PHONE_NUMBER"
+            ]
+          ]
+        },
+        {
+          "id": "H008",
+          "type": "ID",
+          "value": "23B76A2154",
+          "text": "PG hostel lo washrooms chala dirty ga unnayi. Nenu Vamsi Bose, PG hostel lo untanu. Number 947 748 7896. Complaint by Vamsi Bose, hall ticket 23B76A2154",
+          "presidio": [
+            [
+              "Nenu Vamsi Bose",
+              "PERSON"
+            ],
+            [
+              "PG",
+              "LOCATION"
+            ],
+            [
+              "7896",
+              "DATE_TIME"
+            ],
+            [
+              "Vamsi Bose",
+              "PERSON"
+            ],
+            [
+              "947 748 7896",
+              "PHONE_NUMBER"
+            ]
+          ]
+        },
+        {
+          "id": "H009",
+          "type": "NAME",
+          "value": "Anusha",
+          "text": "WiFi in GH-2 has been down all day. Thanks, anusha kamath Please ask Anusha at the front desk, or email anusha59@yahoo.co.in.",
+          "presidio": [
+            [
+              "anusha59@yahoo.co.in",
+              "EMAIL_ADDRESS"
+            ],
+            [
+              "all day",
+              "DATE_TIME"
+            ],
+            [
+              "Anusha",
+              "PERSON"
+            ],
+            [
+              "yahoo.co.in",
+              "URL"
+            ]
+          ]
+        },
+        {
+          "id": "H009",
+          "type": "NAME",
+          "value": "Kamath",
+          "text": "WiFi in GH-2 has been down all day. Thanks, anusha kamath Please ask Anusha at the front desk, or email anusha59@yahoo.co.in.",
+          "presidio": [
+            [
+              "anusha59@yahoo.co.in",
+              "EMAIL_ADDRESS"
+            ],
+            [
+              "all day",
+              "DATE_TIME"
+            ],
+            [
+              "Anusha",
+              "PERSON"
+            ],
+            [
+              "yahoo.co.in",
+              "URL"
+            ]
+          ]
+        },
+        {
+          "id": "H010",
+          "type": "ID",
+          "value": "21243A29D4",
+          "text": "A-block mein kal raat se light nahi hai. Shikayat karta: Haritha Rathod (roll 21243A29D4) Main Haritha Rathod, A-block mein rehta hoon. Mobile 9254639480.",
+          "presidio": [
+            [
+              "mein kal",
+              "PERSON"
+            ],
+            [
+              "raat se",
+              "PERSON"
+            ],
+            [
+              "light nahi hai",
+              "PERSON"
+            ],
+            [
+              "Shikayat karta",
+              "PERSON"
+            ],
+            [
+              "Haritha Rathod",
+              "PERSON"
+            ],
+            [
+              "Main Haritha Rathod",
+              "PERSON"
+            ],
+            [
+              "mein rehta hoon",
+              "PERSON"
+            ],
+            [
+              "9254639480",
+              "PHONE_NUMBER"
+            ],
+            [
+              "9254639480",
+              "US_BANK_NUMBER"
+            ],
+            [
+              "9254639480",
+              "US_DRIVER_LICENSE"
+            ]
+          ]
+        },
+        {
+          "id": "H012",
+          "type": "NAME",
+          "value": "Ishita",
+          "text": "The washrooms in BH-C are filthy. Submitted by Ishita Saxena (+91 97225 01450) Thanks, ishita saxena",
+          "presidio": [
+            [
+              "BH",
+              "LOCATION"
+            ],
+            [
+              "Ishita Saxena",
+              "PERSON"
+            ],
+            [
+              "saxena",
+              "PERSON"
+            ],
+            [
+              "(+91 97225 01450",
+              "PHONE_NUMBER"
+            ]
+          ]
+        },
+        {
+          "id": "H013",
+          "type": "ID",
+          "value": "22384A69C2",
+          "text": "BH-C ke washroom bahut gande hain. Shikayat karta: Rajesh Rathod (roll 22384A69C2) rajesh ko bolo mujhe 73060-11401 pe call kare",
+          "presidio": [
+            [
+              "Shikayat karta",
+              "PERSON"
+            ],
+            [
+              "Rajesh Rathod",
+              "PERSON"
+            ],
+            [
+              "rajesh ko bolo mujhe",
+              "PERSON"
+            ],
+            [
+              "kare",
+              "PERSON"
+            ],
+            [
+              "73060-11401",
+              "PHONE_NUMBER"
+            ]
+          ]
+        },
+        {
+          "id": "H014",
+          "type": "NAME",
+          "value": "Ishita",
+          "text": "Girls Hostel 2 lo current ledu ninna raatri nunchi. Ishita madam ki inform cheyyandi, mail ishita39@yahoo.co.in Nenu Ishita Qureshi, Girls Hostel 2 lo untanu. Number 7767082709.",
+          "presidio": [
+            [
+              "ishita39@yahoo.co.in",
+              "EMAIL_ADDRESS"
+            ],
+            [
+              "7767082709",
+              "UK_NHS"
+            ],
+            [
+              "ninna raatri nunchi",
+              "PERSON"
+            ],
+            [
+              "ki",
+              "PERSON"
+            ],
+            [
+              "Nenu Ishita Qureshi",
+              "PERSON"
+            ],
+            [
+              "7767082709",
+              "PHONE_NUMBER"
+            ],
+            [
+              "yahoo.co.in",
+              "URL"
+            ],
+            [
+              "7767082709",
+              "US_BANK_NUMBER"
+            ],
+            [
+              "7767082709",
+              "US_DRIVER_LICENSE"
+            ]
+          ]
+        },
+        {
+          "id": "H016",
+          "type": "NAME",
+          "value": "Anirudh",
+          "text": "PG hostel mein subah se paani nahi aa raha hai. Shikayat karta: Anirudh Bose (roll 25507A44F1) Main Anirudh Bose, PG hostel mein rehta hoon. Mobile +91-60064-48405.",
+          "presidio": [
+            [
+              "se paani nahi",
+              "PERSON"
+            ],
+            [
+              "raha hai",
+              "PERSON"
+            ],
+            [
+              "Shikayat karta",
+              "PERSON"
+            ],
+            [
+              "+91-60064-48405",
+              "PHONE_NUMBER"
+            ]
+          ]
+        },
+        {
+          "id": "H016",
+          "type": "NAME",
+          "value": "Bose",
+          "text": "PG hostel mein subah se paani nahi aa raha hai. Shikayat karta: Anirudh Bose (roll 25507A44F1) Main Anirudh Bose, PG hostel mein rehta hoon. Mobile +91-60064-48405.",
+          "presidio": [
+            [
+              "se paani nahi",
+              "PERSON"
+            ],
+            [
+              "raha hai",
+              "PERSON"
+            ],
+            [
+              "Shikayat karta",
+              "PERSON"
+            ],
+            [
+              "+91-60064-48405",
+              "PHONE_NUMBER"
+            ]
+          ]
+        }
+      ]
+    }
+  }
+}

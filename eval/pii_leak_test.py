@@ -170,7 +170,14 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--heldout", action="store_true",
                         help="use the held-out names and phrasings that were not used to tune the masker")
+    parser.add_argument("--dump-cases", type=Path, default=None,
+                        help="write the generated cases (both sets) as JSON and exit, e.g. for eval/presidio_compare.py")
     args = parser.parse_args()
+    if args.dump_cases:
+        args.dump_cases.write_text(json.dumps({"tuning": build_cases(False), "heldout": build_cases(True)},
+                                              indent=1, ensure_ascii=False), encoding="utf-8")
+        print(f"wrote {args.dump_cases}")
+        return
     suffix = "_heldout" if args.heldout else ""
     cases = build_cases(args.heldout)
     recorder = PromptRecorder()
