@@ -54,6 +54,7 @@ class TriagePipeline:
         external_id: str | None = None,
         truth: dict | None = None,
         extraction: Extraction | None = None,
+        contact: str | None = None,
         now: datetime | None = None,
     ) -> Complaint:
         """Run the whole pipeline for one complaint and persist the result (status = pending)."""
@@ -72,7 +73,7 @@ class TriagePipeline:
         routing = route(extraction)
         complaint = Complaint(
             external_id=external_id, source=source, text=text, masked_text=masked,
-            pii_types=sorted({p["type"] for p in pii}), location=place, reported_at=reported_at,
+            pii_types=sorted({p["type"] for p in pii}), location=place, reported_at=reported_at, contact=contact,
             ai_category=extraction.category, ai_sub_issue=extraction.sub_issue, ai_location=extraction.location,
             ai_summary=extraction.one_line_summary, ai_safety_risk=extraction.safety_risk,
             ai_people_affected=extraction.people_affected, ai_sentiment=extraction.sentiment,
@@ -166,9 +167,9 @@ class TriagePipeline:
 
 
 def urgency_sort_key(c: Complaint) -> tuple:
-    """Queue order: highest urgency first, then score, then oldest first."""
+    """Queue order: highest urgency first, then oldest first (waiting longest)."""
     level = c.final_urgency or c.urgency
-    return (-URGENCY_RANK.get(level, 0), -c.urgency_score, c.reported_at)
+    return (-URGENCY_RANK.get(level, 0), c.reported_at)
 
 
 __all__ = ["TriagePipeline", "urgency_sort_key", "URGENCY_LEVELS"]

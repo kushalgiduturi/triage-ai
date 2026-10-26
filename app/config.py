@@ -14,6 +14,7 @@ DATA_DIR = Path(os.getenv("TRIAGE_DATA_DIR", ROOT_DIR / "data"))
 MODELS_DIR = Path(os.getenv("TRIAGE_MODELS_DIR", ROOT_DIR / "models"))
 DEPARTMENTS_YAML = ROOT_DIR / "config" / "departments.yaml"
 COMPLAINTS_CSV = ROOT_DIR / "data" / "complaints.csv"
+FRONTEND_DIST = Path(os.getenv("TRIAGE_FRONTEND_DIST", ROOT_DIR / "frontend" / "dist"))
 
 DB_PATH = Path(os.getenv("TRIAGE_DB_PATH", DATA_DIR / "triage.db"))
 FAISS_INDEX_PATH = Path(os.getenv("TRIAGE_FAISS_PATH", DATA_DIR / "faiss.index"))

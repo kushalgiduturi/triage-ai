@@ -51,6 +51,7 @@ class Complaint(Base):
     masked_text: Mapped[str] = mapped_column(Text)
     pii_types: Mapped[list] = mapped_column(JSON, default=list)  # types only; raw values are never stored twice
     location: Mapped[str] = mapped_column(String(120), default="")
+    contact: Mapped[str | None] = mapped_column(String(200), nullable=True)  # never sent to the AI
     reported_at: Mapped[datetime] = mapped_column(DateTime)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
 

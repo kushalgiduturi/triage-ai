@@ -89,6 +89,17 @@ def test_review_actions_and_audit(client):
     rejected = client.post(f"/complaints/{other['id']}/review", json={"action": "reject", "reviewer": "Asha"})
     assert rejected.json()["status"] == "rejected"
 
+    audit = client.get("/audit").json()["items"]
+    assert [a["action"] for a in audit] == ["reject", "merge", "edit"]  # newest first, human actions only
+    assert len(client.get("/audit", params={"include_ai": True}).json()["items"]) > len(audit)
+
+
+def test_contact_is_stored_but_never_sent_to_ai(client):
+    card = client.post("/complaints", json={"text": "The fans in the CSE block classroom are not working.",
+                                            "location": "CSE Block", "contact": "asha@example.com"}).json()
+    assert card["contact"] == "asha@example.com"
+    assert "asha@example.com" not in card["masked_text"]
+
 
 def test_metrics_and_taxonomy(client):
     submit(client, "Rice served at the main mess today was half cooked.", "Main Mess")

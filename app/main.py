@@ -18,11 +18,12 @@ from typing import Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.config import EMBEDDING_BACKEND, ROOT_DIR, has_anthropic_key
+from app.config import EMBEDDING_BACKEND, FRONTEND_DIST, ROOT_DIR, has_anthropic_key
 from app.db import AuditLog, Complaint, Incident, make_session_factory
 from app.duplicates import DuplicateIndex
 from app.extract import Extractor
@@ -84,6 +85,7 @@ def get_session():
 class ComplaintIn(BaseModel):
     text: str = Field(min_length=5, max_length=5000)
     location: str | None = Field(default=None, max_length=120)
+    contact: str | None = Field(default=None, max_length=200, description="Optional; stored for the reviewer, never sent to the AI")
     reported_at: datetime | None = None
 
 
@@ -112,6 +114,7 @@ def summary(c: Complaint) -> dict:
         "urgency": c.final_urgency or c.urgency,
         "urgency_score": c.urgency_score,
         "department": c.final_department or c.department,
+        "suggested_department": c.final_department or c.suggested_department,
         "confidence": c.confidence,
         "needs_manual_triage": c.needs_manual_triage,
         "status": c.status,
@@ -127,6 +130,7 @@ def card(c: Complaint) -> dict:
         **summary(c),
         "text": c.text,
         "masked_text": c.masked_text,
+        "contact": c.contact,
         "pii_types": c.pii_types,
         "ai_suggestion": {
             "category": c.ai_category,
@@ -209,7 +213,8 @@ def locations(session: Session = Depends(get_session)) -> list[str]:
 @app.post("/complaints", status_code=201)
 def submit_complaint(body: ComplaintIn, session: Session = Depends(get_session)) -> dict:
     """Run the full pipeline on a new complaint. The result is a pending suggestion."""
-    complaint = state.pipeline.process(session, body.text, body.location, body.reported_at, source="live")
+    complaint = state.pipeline.process(session, body.text, body.location, body.reported_at, source="live",
+                                       contact=body.contact)
     session.commit()
     state.pipeline.index.save()
     return detail(complaint.id, session)
@@ -226,7 +231,7 @@ def list_complaints(
     limit: int = Query(500, ge=1, le=2000),
     offset: int = Query(0, ge=0),
 ) -> dict:
-    """Review queue sorted by urgency (Critical first), then score, then oldest first."""
+    """Review queue sorted by urgency (Critical first), then oldest first."""
     rows = session.scalars(select(Complaint)).all()
 
     def keep(c: Complaint) -> bool:
@@ -342,6 +347,20 @@ def review(complaint_id: int, body: ReviewIn, session: Session = Depends(get_ses
     return detail(c.id, session)
 
 
+@app.get("/audit")
+def audit_log(session: Session = Depends(get_session), include_ai: bool = False,
+              limit: int = Query(500, ge=1, le=5000)) -> dict:
+    """Global audit log, newest first. By default only human actions (not the AI's initial suggestions)."""
+    query = select(AuditLog).order_by(AuditLog.id.desc()).limit(limit)
+    if not include_ai:
+        query = query.where(AuditLog.action != "ai_triage")
+    return {"items": [
+        {"id": a.id, "complaint_id": a.complaint_id, "timestamp": a.timestamp.isoformat(), "reviewer": a.reviewer,
+         "action": a.action, "old_value": a.old_value, "new_value": a.new_value, "notes": a.notes}
+        for a in session.scalars(query).all()
+    ]}
+
+
 @app.get("/incidents")
 def incidents(session: Session = Depends(get_session), min_reports: int = 2) -> dict:
     rows = session.scalars(select(Incident).where(Incident.report_count >= min_reports)).all()
@@ -425,3 +444,12 @@ def metrics(session: Session = Depends(get_session)) -> dict:
         "bias_by_language_style": bias,
         "offline_evaluation": evaluation,
     }
+
+
+# --------------------------------------------------------------------------- frontend
+
+# The built React app (frontend/dist) is served from "/" so the whole product runs on one port.
+# Mounted last: every API route above takes precedence. The UI uses hash routes (#/complaints/12),
+# so browser routes never collide with API paths.
+if (FRONTEND_DIST / "index.html").exists():
+    app.mount("/", StaticFiles(directory=FRONTEND_DIST, html=True), name="frontend")
