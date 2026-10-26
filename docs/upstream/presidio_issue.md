@@ -1,7 +1,7 @@
-# Draft issue for data-privacy-stack/presidio (not posted)
+# Issue for data-privacy-stack/presidio
 
 Repository: https://github.com/data-privacy-stack/presidio (formerly microsoft/presidio)
-Status: draft, waiting for approval before posting.
+Status: posted on 2026-10-26 as https://github.com/data-privacy-stack/presidio/issues/2415 (text below is exactly what was posted).
 
 ---
 

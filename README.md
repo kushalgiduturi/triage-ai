@@ -145,7 +145,7 @@ More detail: [design decisions](docs/DESIGN.md), [deployment and the two edition
 
 ## Upstream contributions
 
-In progress: a reproducible report on Microsoft Presidio's handling of Indian, code-mixed complaint text, based on this project's PII leak test. Links will be added here once posted.
+- **Microsoft Presidio:** [data-privacy-stack/presidio#2415](https://github.com/data-privacy-stack/presidio/issues/2415), "Valid Indian mobile numbers score DATE_TIME (0.85) above PHONE_NUMBER and are anonymized as `<DATE_TIME>`". Found by running Presidio on this project's PII leak-test cases: 32 of 203 Indian phone numbers would be anonymized as dates. Includes a 4-line reproduction, measurements and three possible fixes, with an offer to open a PR. Draft and evidence: [docs/upstream/presidio_issue.md](docs/upstream/presidio_issue.md), [eval/presidio_compare.py](eval/presidio_compare.py).
 
 ## Roadmap and contributing
 
